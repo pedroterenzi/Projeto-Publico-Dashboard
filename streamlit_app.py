@@ -35,7 +35,7 @@ st.markdown("""
         margin: 0 !important; text-align: center;
     }
 
-    /* CARDS DE MÉTRICAS DO TOPO */
+    /* CARDS DE MÉTRICAS */
     .metric-card {
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800;
@@ -47,11 +47,7 @@ st.markdown("""
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO PADRONIZADO */
-    .monthly-profit-card {
-        padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
-        margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+    /* CALENDÁRIO */
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
     .day-name { text-align: center; color: #475569; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 5px; }
     .day-card { 
@@ -90,7 +86,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS ---
+# --- ESTADOS DE SESSÃO ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -105,7 +101,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Secrets não configurado.")
+    except: st.error("Erro: Configure os Secrets.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -124,7 +120,7 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     uploaded_file = st.file_uploader("1. Carregar Extrato (.csv)", type=["csv"])
-    uploaded_backup = st.file_uploader("2. Carregar Backup (.json)", type=["json"])
+    uploaded_backup = st.file_uploader("2. Opcional: Backup de Métodos (.json)", type=["json"])
     if uploaded_backup:
         st.session_state.metodos_salvos = json.load(uploaded_backup)
         st.success("Backup Aplicado!")
@@ -132,7 +128,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
-# --- LÓGICA DE PROCESSAMENTO ---
+# --- LÓGICA DE DADOS ---
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
@@ -167,8 +163,6 @@ if uploaded_file is not None:
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
         df_clean = df_clean.sort_values('Dt_Obj')
 
-        # --- NAVEGAÇÃO ---
-
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
             p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
@@ -180,15 +174,24 @@ if uploaded_file is not None:
                 wr_geral = (len(df_aba[df_aba['V_F'] > 0.05]) / entradas * 100) if entradas > 0 else 0
                 odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
 
-                # Lógica Sequências
+                # LÓGICA DE SEQUÊNCIA ATUAL
                 curr_streak = 0
                 for v in reversed(df_aba['V_F'].tolist()):
                     if v > 0.05: curr_streak += 1
                     elif v < -0.05: break
-                streak_id = (df_aba['V_F'] <= 0.05).cumsum()
-                streak_counts = df_aba[df_aba['V_F'] > 0.05].groupby(streak_id).size().value_counts().to_dict()
 
-                # DESIGN: Lucro Grande e demais abaixo
+                # --- NOVA LÓGICA DE SEQUÊNCIAS ACUMULADAS ---
+                streak_counts = {i: 0 for i in range(2, 12)}
+                temp_streak = 0
+                for v in df_aba['V_F'].tolist():
+                    if v > 0.05:
+                        temp_streak += 1
+                        # Se o trader atingiu por exemplo 5, ele passou por 2, 3, 4 e 5.
+                        for i in range(2, min(temp_streak + 1, 12)):
+                            streak_counts[i] += 1
+                    else:
+                        temp_streak = 0
+
                 bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
                 st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
                 
@@ -212,7 +215,6 @@ if uploaded_file is not None:
                         st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with col2:
                     st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
-                    # Lógica de Range - WR removida conforme solicitado
                     df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
                     df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
                     res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
@@ -236,8 +238,7 @@ if uploaded_file is not None:
             df_mes = df_clean[(df_clean['Dt_Obj'].dt.year == ano_c) & (df_clean['Dt_Obj'].dt.month == mes_num)]
             l_mes = df_mes['V_F'].sum()
             wr_mes = (len(df_mes[df_mes['V_F'] > 0.05]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
-            
-            st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | TAXA DE ACERTO: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | WR: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
             l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
             cal_obj = calendar.Calendar(firstweekday=0); dias = list(cal_obj.itermonthdays(ano_c, mes_num))
             html = '<div class="calendar-grid">'
