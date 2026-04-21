@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM (REFINADA) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -18,7 +18,7 @@ st.markdown("""
     .stApp { background-color: #020617; }
     .main .block-container { max-width: 1200px; padding-top: 1.5rem; margin: auto; }
 
-    /* NAVEGAÇÃO */
+    /* NAVEGAÇÃO SIDEBAR */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05);
@@ -63,12 +63,8 @@ st.markdown("""
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
     
-    .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; }
-    .day-value { 
-        font-size: 0.75rem; font-weight: 800; color: white; 
-        width: 100%; text-align: right; white-space: nowrap; 
-        overflow: hidden; text-overflow: ellipsis;
-    }
+    .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+    .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
 
     /* PERFORMANCE */
     .perf-card { 
@@ -93,7 +89,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS ---
+# --- ESTADOS DE SESSÃO ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -108,7 +104,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Secrets não configurado.")
+    except: st.error("Erro: Configure 'users' nos Secrets do Streamlit Cloud.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -135,7 +131,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
-# --- LÓGICA DE PROCESSAMENTO ---
+# --- LÓGICA DE DADOS ---
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
@@ -169,11 +165,11 @@ if uploaded_file is not None:
         df_clean['Hora'] = df_clean['Dt_Obj'].dt.hour
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
 
-        # --- NAVEGAÇÃO E FILTROS ---
+        # --- NAVEGAÇÃO ---
 
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
-            p_perf = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
+            p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
             
             if len(p_perf) == 2:
                 df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])]
@@ -239,7 +235,7 @@ if uploaded_file is not None:
             st.subheader("📋 Log de Apostas")
             p_log = st.date_input("Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
             if len(p_log) == 2:
-                search = st.text_input("Filtrar")
+                search = st.text_input("Filtrar por jogo ou mercado")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
                 df_v = df_v.sort_values('Dt_Obj', ascending=False)
@@ -258,24 +254,50 @@ if uploaded_file is not None:
                             st.rerun()
 
         elif menu == "📊 Evolução Patrimonial":
-            st.subheader("📊 Evolução Patrimonial")
-            p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
+            st.subheader("📊 Evolução Patrimonial Dinâmica")
+            p_evol = st.date_input("Período do Gráfico", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
             if len(p_evol) == 2:
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])]
                 df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index()
                 df_ev['Acum'] = df_ev['V_F'].cumsum()
-                fig = go.Figure(go.Scatter(x=df_ev['Data_Apenas'], y=df_ev['Acum'], mode='lines', line=dict(color='#10b981', width=3, shape='spline')))
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=500, xaxis=dict(color='#475569'), yaxis=dict(color='#475569', gridcolor='rgba(255,255,255,0.05)'))
-                st.plotly_chart(fig, use_container_width=True)
+                
+                # --- GRÁFICO PROFISSIONAL COM TROCA DE COR ---
+                fig = go.Figure()
+                y, x = df_ev['Acum'].tolist(), df_ev['Data_Apenas'].tolist()
+                
+                # Adiciona linha de referência zero
+                fig.add_hline(y=0, line_dash="dash", line_color="#475569", line_width=1, opacity=0.5)
+                
+                # Segmentação da linha por cor
+                for i in range(len(y)-1):
+                    cor_segmento = '#10b981' if y[i+1] >= 0 else '#f43f5e'
+                    fig.add_trace(go.Scatter(
+                        x=x[i:i+2], y=y[i:i+2], mode='lines',
+                        line=dict(color=cor_segmento, width=3.5, shape='spline', smoothing=1.3),
+                        fill='tozeroy', 
+                        fillcolor='rgba(16, 185, 129, 0.08)' if y[i+1] >= 0 else 'rgba(244, 63, 94, 0.08)',
+                        hoverinfo='skip', showlegend=False
+                    ))
+                
+                # Adiciona pontos de destaque (Markers)
+                fig.add_trace(go.Scatter(x=x, y=y, mode='markers', marker=dict(size=4, color='white', opacity=0.3), name="Patrimônio"))
+
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                    height=500, margin=dict(l=0,r=0,t=10,b=0),
+                    xaxis=dict(showgrid=False, color='#475569', tickfont=dict(size=10)),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.03)', color='#475569', tickfont=dict(size=10))
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
         elif menu == "⏰ Análise de Janelas":
             st.subheader("⏰ Análise de Janelas")
-            p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
+            p_jan = st.date_input("Período das Janelas", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
             if len(p_jan) == 2:
                 df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.subheader("📅 Dias")
+                    st.subheader("📅 Dias da Semana")
                     d_s = {0:'Segunda', 1:'Terça', 2:'Quarta', 3:'Quinta', 4:'Sexta', 5:'Sábado', 6:'Domingo'}
                     res_d = df_j.groupby('Dia_Num').agg({'V_F':['sum','count']}).reset_index()
                     res_d.columns = ['Dia','Lucro','Qtd']
