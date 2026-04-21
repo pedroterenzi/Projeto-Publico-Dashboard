@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (FOCO EM SIMETRIA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -29,6 +29,10 @@ st.markdown("""
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
         background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important;
         border: none !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] p {
+        color: white !important; font-weight: 700 !important; font-size: 0.9rem !important;
+        margin: 0 !important; text-align: center;
     }
 
     /* CARDS DE MÉTRICAS DO TOPO */
@@ -59,16 +63,31 @@ st.markdown("""
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
     .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
 
-    /* PERFORMANCE (MÉTODOS, ODDS, SEQUENCIAS) - ALINHADOS */
+    /* PADRONIZAÇÃO ABSOLUTA DOS CARTÕES DE PERFORMANCE (MÉTODOS, ODDS, SEQUÊNCIAS) */
     .perf-card { 
-        background: #0f172a; border-radius: 12px; padding: 15px 18px; 
-        display: flex; align-items: center; justify-content: space-between; 
-        border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 10px;
-        min-height: 90px; width: 100%; box-sizing: border-box;
+        background: #0f172a; 
+        border-radius: 12px; 
+        padding: 15px 18px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+        border: 1px solid rgba(255, 255, 255, 0.05); 
+        margin-bottom: 10px;
+        height: 90px; /* Altura fixa para todos */
+        width: 100%; 
+        box-sizing: border-box;
     }
     .val-pos { color: #10b981; font-weight: 800; }
     .val-neg { color: #f43f5e; font-weight: 800; }
-    .step-box { background: #1e293b; padding: 20px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #10b981; }
+    .section-title {
+        color: white; 
+        font-size: 1.1rem; 
+        font-weight: 800; 
+        margin-bottom: 15px; 
+        padding-left: 5px;
+        border-left: 4px solid #10b981;
+        line-height: 1;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -82,7 +101,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS ---
+# --- ESTADOS DE SESSÃO ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -97,7 +116,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Erro: Configure 'users' nos Secrets.")
+    except: st.error("Configure os Secrets.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -155,11 +174,7 @@ if uploaded_file is not None:
         
         df_clean['Metodo'] = df_clean.apply(get_metodo, axis=1)
         df_clean['Data_Apenas'] = df_clean['Dt_Obj'].dt.date
-        df_clean['Hora'] = df_clean['Dt_Obj'].dt.hour
-        df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
         df_clean = df_clean.sort_values('Dt_Obj')
-
-        # --- ABAS ---
 
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
@@ -172,6 +187,7 @@ if uploaded_file is not None:
                 wr_geral = (len(df_aba[df_aba['V_F'] > 0]) / entradas * 100) if entradas > 0 else 0
                 odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
 
+                # Lógica Sequências
                 curr_streak = 0
                 for v in reversed(df_aba['V_F'].tolist()):
                     if v > 0: curr_streak += 1
@@ -190,9 +206,12 @@ if uploaded_file is not None:
                 with c5: st.markdown(f'<div class="metric-card" style="background: #1e293b;"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color: #10b981;">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns(3) # Colunas com o mesmo peso visual
+                
+                # COLUNAS SIMÉTRICAS
+                col1, col2, col3 = st.columns(3)
+                
                 with col1:
-                    st.subheader("🎯 Por Método")
+                    st.markdown('<div class="section-title">Por Método</div>', unsafe_allow_html=True)
                     res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
                     res.columns = ['Metodo', 'Lucro', 'Qtd']
                     for _, row in res.sort_values('Lucro', ascending=False).iterrows():
@@ -200,8 +219,9 @@ if uploaded_file is not None:
                         wr_m = (hits / row['Qtd'] * 100)
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                
                 with col2:
-                    st.subheader("📊 Por Range de Odd")
+                    st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
                     df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
                     df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
                     res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
@@ -211,14 +231,16 @@ if uploaded_file is not None:
                         wr_o = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                
                 with col3:
-                    st.subheader("🔥 Sequências de Green")
+                    st.markdown('<div class="section-title">Sequências de Green</div>', unsafe_allow_html=True)
                     for i in range(2, 12):
                         count = streak_counts.get(i, 0)
                         label = f"{i} Greens Seguidos" if i < 11 else "11+ Greens Seguidos"
                         st.markdown(f'<div class="perf-card"><div><b>{label}</b></div><div style="text-align:right;"><span class="val-pos">{count} vezes</span></div></div>', unsafe_allow_html=True)
 
         elif menu == "📅 Diário de Operações":
+            st.markdown("<h2 style='color: white;'>📅 Diário de Operações</h2>", unsafe_allow_html=True)
             ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
             meses_n = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
             mes_sel = st.sidebar.selectbox("Mês", meses_n, index=datetime.now().month - 1)
@@ -228,7 +250,7 @@ if uploaded_file is not None:
             wr_mes = (len(df_mes[df_mes['V_F'] > 0]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
             st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | WR: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
             l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
-            cal = calendar.Calendar(firstweekday=0); dias = list(cal.itermonthdays(ano_c, mes_num))
+            cal_obj = calendar.Calendar(firstweekday=0); dias = list(cal_obj.itermonthdays(ano_c, mes_num))
             html = '<div class="calendar-grid">'
             for n in ['SEG','TER','QUA','QUI','SEX','SAB','DOM']: html += f'<div class="day-name">{n}</div>'
             for d in dias:
