@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM (REFINADA E MANTIDA) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -18,7 +18,7 @@ st.markdown("""
     .stApp { background-color: #020617; }
     .main .block-container { max-width: 1200px; padding-top: 1.5rem; margin: auto; }
 
-    /* NAVEGAÇÃO SIDEBAR */
+    /* NAVEGAÇÃO */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05);
@@ -35,7 +35,7 @@ st.markdown("""
         margin: 0 !important; text-align: center;
     }
 
-    /* CARDS DE MÉTRICAS DO TOPO */
+    /* CARDS DE MÉTRICAS */
     .metric-card {
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800;
@@ -47,13 +47,13 @@ st.markdown("""
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO PADRONIZADO (FONTE BRANCA REFORÇADA) */
+    /* CALENDÁRIO */
     .monthly-profit-card {
         padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
         margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
-    .day-name { text-align: center; color: #475569; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; padding-bottom: 5px; }
+    .day-name { text-align: center; color: #475569; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 5px; }
     .day-card { 
         background: #0f172a; border-radius: 10px; padding: 10px; min-height: 100px; 
         display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
@@ -61,10 +61,10 @@ st.markdown("""
     }
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
-    .day-number { font-size: 1.1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
     .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
 
-    /* PERFORMANCE (PADRONIZAÇÃO ABSOLUTA DE TAMANHO) */
+    /* PERFORMANCE */
     .perf-card { 
         background: #0f172a; border-radius: 12px; padding: 15px 18px; 
         display: flex; align-items: center; justify-content: space-between; 
@@ -90,7 +90,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS ---
+# --- ESTADOS DE SESSÃO ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -105,7 +105,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Secrets não configurado.")
+    except: st.error("Erro: Configure 'users' nos Secrets.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -206,20 +206,34 @@ if uploaded_file is not None:
                     res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
                     res.columns = ['Metodo', 'Lucro', 'Qtd']
                     for _, row in res.sort_values('Lucro', ascending=False).iterrows():
-                        wr_m = (len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
+                        hits_m = len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)])
+                        wr_m = (hits_m / row['Qtd'] * 100) if row['Qtd']>0 else 0
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with col2:
                     st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
-                    df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
-                    df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
+                    
+                    # --- LÓGICA DE ESTIMATIVA DE ODD PARA REDS ---
+                    # 1. Calcular Odds Reais apenas para Greens
+                    df_aba['Odd_Estimada'] = np.where(df_aba['V_F'] > 0.05, (df_aba['V_F'] / stake_padrao) + 1, 0)
+                    # 2. Mapear a Odd Média de cada Método
+                    map_odd_metodo = df_aba[df_aba['Odd_Estimada'] > 0].groupby('Metodo')['Odd_Estimada'].mean().to_dict()
+                    # 3. Preencher os Reds com a Odd Média do seu respectivo método
+                    df_aba['Odd_Final'] = df_aba.apply(lambda r: r['Odd_Estimada'] if r['Odd_Estimada'] > 0 else map_odd_metodo.get(r['Metodo'], 2.0), axis=1)
+                    
+                    # Categorização
+                    df_aba['Range'] = pd.cut(df_aba['Odd_Final'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
                     res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
                     res_odd.columns = ['Range', 'Lucro', 'Qtd']
+                    
                     for _, row in res_odd.iterrows():
-                        hits_faixa = len(df_aba[(df_aba['Range'] == row['Range']) & (df_aba['V_F'] > 0.05)])
+                        # Conta acertos reais dentro daquele range estimado
+                        faixa_data = df_aba[df_aba['Range'] == row['Range']]
+                        hits_faixa = len(faixa_data[faixa_data['V_F'] > 0.05])
                         wr_o = (hits_faixa / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                
                 with col3:
                     st.markdown('<div class="section-title">Sequências de Green</div>', unsafe_allow_html=True)
                     for i in range(2, 12):
@@ -253,7 +267,7 @@ if uploaded_file is not None:
             st.subheader("📋 Log de Apostas")
             p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
             if len(p_log) == 2:
-                search = st.text_input("Filtrar por jogo ou mercado")
+                search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
                 df_v = df_v.sort_values('Dt_Obj', ascending=False)
