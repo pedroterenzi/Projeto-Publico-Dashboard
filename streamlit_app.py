@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
+# --- ESTILIZAÇÃO CSS PREMIUM (MANTIDA E PADRONIZADA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -48,6 +48,10 @@ st.markdown("""
     .metric-value-grande { font-size: 2.8rem; }
 
     /* CALENDÁRIO */
+    .monthly-profit-card {
+        padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
+        margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+    }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
     .day-name { text-align: center; color: #475569; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 5px; }
     .day-card { 
@@ -60,7 +64,7 @@ st.markdown("""
     .day-number { font-size: 1.1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
     .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
 
-    /* PERFORMANCE (PADRONIZAÇÃO ABSOLUTA) */
+    /* PERFORMANCE E SEQUENCIAS */
     .perf-card { 
         background: #0f172a; border-radius: 12px; padding: 15px 18px; 
         display: flex; align-items: center; justify-content: space-between; 
@@ -86,7 +90,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS DE SESSÃO ---
+# --- ESTADOS ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -101,7 +105,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Erro: Configure os Secrets.")
+    except: st.error("Configure os Secrets.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -120,13 +124,13 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     uploaded_file = st.file_uploader("1. Carregar Extrato (.csv)", type=["csv"])
-    uploaded_backup = st.file_uploader("2. Opcional: Backup de Métodos (.json)", type=["json"])
+    uploaded_backup = st.file_uploader("2. Opcional: Carregar Backup (.json)", type=["json"])
     if uploaded_backup:
         st.session_state.metodos_salvos = json.load(uploaded_backup)
         st.success("Backup Aplicado!")
     stake_padrao = st.number_input("Sua Stake (R$)", value=600.0)
     st.markdown("---")
-    menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
+    menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "🔥 Sequências", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
 # --- LÓGICA DE DADOS ---
 if uploaded_file is not None:
@@ -138,7 +142,6 @@ if uploaded_file is not None:
                 if c in map_cols[key]: return c
             return None
         c_data, c_desc, c_val, c_ent, c_sai = get_c('Data'), get_c('Desc'), get_c('Val'), get_c('Ent'), get_c('Sai')
-
         if c_val: df_raw['V_F'] = df_raw[c_val].apply(clean_money)
         else: df_raw['V_F'] = df_raw[c_ent].apply(clean_money) + df_raw[c_sai].apply(clean_money)
 
@@ -163,6 +166,8 @@ if uploaded_file is not None:
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
         df_clean = df_clean.sort_values('Dt_Obj')
 
+        # --- ABAS ---
+
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
             p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
@@ -170,27 +175,13 @@ if uploaded_file is not None:
             if len(p_perf) == 2:
                 df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])].copy()
                 total_l = df_aba['V_F'].sum()
-                entradas = len(df_aba)
-                wr_geral = (len(df_aba[df_aba['V_F'] > 0.05]) / entradas * 100) if entradas > 0 else 0
+                entradas = len(df_aba); wr_geral = (len(df_aba[df_aba['V_F'] > 0.05]) / entradas * 100) if entradas > 0 else 0
                 odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
 
-                # LÓGICA DE SEQUÊNCIA ATUAL
                 curr_streak = 0
                 for v in reversed(df_aba['V_F'].tolist()):
                     if v > 0.05: curr_streak += 1
                     elif v < -0.05: break
-
-                # --- NOVA LÓGICA DE SEQUÊNCIAS ACUMULADAS ---
-                streak_counts = {i: 0 for i in range(2, 12)}
-                temp_streak = 0
-                for v in df_aba['V_F'].tolist():
-                    if v > 0.05:
-                        temp_streak += 1
-                        # Se o trader atingiu por exemplo 5, ele passou por 2, 3, 4 e 5.
-                        for i in range(2, min(temp_streak + 1, 12)):
-                            streak_counts[i] += 1
-                    else:
-                        temp_streak = 0
 
                 bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
                 st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
@@ -203,14 +194,13 @@ if uploaded_file is not None:
                 with c5: st.markdown(f'<div class="metric-card" style="background: #1e293b;"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color: #10b981;">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns(3)
+                col1, col2 = st.columns(2)
                 with col1:
                     st.markdown('<div class="section-title">Por Método</div>', unsafe_allow_html=True)
                     res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
                     res.columns = ['Metodo', 'Lucro', 'Qtd']
                     for _, row in res.sort_values('Lucro', ascending=False).iterrows():
-                        hits_m = len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)])
-                        wr_m = (hits_m / row['Qtd'] * 100) if row['Qtd']>0 else 0
+                        wr_m = (len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with col2:
@@ -222,12 +212,38 @@ if uploaded_file is not None:
                     for _, row in res_odd.iterrows():
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
                         st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
-                with col3:
-                    st.markdown('<div class="section-title">Sequências de Green</div>', unsafe_allow_html=True)
+
+        elif menu == "🔥 Sequências":
+            st.markdown("<h2 style='color: white;'>🔥 Análise de Sequências</h2>", unsafe_allow_html=True)
+            p_seq = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_seq")
+            if len(p_seq) == 2:
+                df_s = df_clean[(df_clean['Data_Apenas'] >= p_seq[0]) & (df_clean['Data_Apenas'] <= p_seq[1])].copy()
+                
+                # Lógica Inclusiva Green
+                streak_g = {i: 0 for i in range(2, 12)}; temp_g = 0
+                for v in df_s['V_F'].tolist():
+                    if v > 0.05:
+                        temp_g += 1
+                        for i in range(2, min(temp_g + 1, 12)): streak_g[i] += 1
+                    else: temp_g = 0
+                
+                # Lógica Inclusiva Red
+                streak_r = {i: 0 for i in range(2, 12)}; temp_r = 0
+                for v in df_s['V_F'].tolist():
+                    if v < -0.05:
+                        temp_r += 1
+                        for i in range(2, min(temp_r + 1, 12)): streak_r[i] += 1
+                    else: temp_r = 0
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown('<div class="section-title">Sequências de Greens</div>', unsafe_allow_html=True)
                     for i in range(2, 12):
-                        count = streak_counts.get(i, 0)
-                        label = f"{i} Greens Seguidos" if i < 11 else "11+ Greens Seguidos"
-                        st.markdown(f'<div class="perf-card"><div><b>{label}</b></div><div style="text-align:right;"><span class="val-pos">{count} vezes</span></div></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="perf-card"><div><b>{i} Greens Seguidos</b></div><div style="text-align:right;"><span class="val-pos">{streak_g[i]} vezes</span></div></div>', unsafe_allow_html=True)
+                with c2:
+                    st.markdown('<div class="section-title">Sequências de Reds</div>', unsafe_allow_html=True)
+                    for i in range(2, 12):
+                        st.markdown(f'<div class="perf-card"><div><b>{i} Reds Seguidos</b></div><div style="text-align:right;"><span class="val-neg">{streak_r[i]} vezes</span></div></div>', unsafe_allow_html=True)
 
         elif menu == "📅 Diário de Operações":
             st.markdown("<h2 style='color: white;'>📅 Diário de Operações</h2>", unsafe_allow_html=True)
@@ -236,8 +252,7 @@ if uploaded_file is not None:
             mes_sel = st.sidebar.selectbox("Mês", meses_n, index=datetime.now().month - 1)
             mes_num = meses_n.index(mes_sel) + 1
             df_mes = df_clean[(df_clean['Dt_Obj'].dt.year == ano_c) & (df_clean['Dt_Obj'].dt.month == mes_num)]
-            l_mes = df_mes['V_F'].sum()
-            wr_mes = (len(df_mes[df_mes['V_F'] > 0.05]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
+            l_mes = df_mes['V_F'].sum(); wr_mes = (len(df_mes[df_mes['V_F'] > 0.05]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
             st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | WR: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
             l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
             cal_obj = calendar.Calendar(firstweekday=0); dias = list(cal_obj.itermonthdays(ano_c, mes_num))
@@ -268,9 +283,7 @@ if uploaded_file is not None:
                     with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:60]}... | {format_br(row['V_F'])}"):
                         m_idx = st.session_state.lista_metodos.index(row['Metodo']) if row['Metodo'] in st.session_state.lista_metodos else 0
                         novo = st.selectbox("Método:", st.session_state.lista_metodos, index=m_idx, key=f"log_{row['ID_Ref']}_{idx}")
-                        if novo != row['Metodo']:
-                            st.session_state.metodos_salvos[row['ID_Ref']] = novo
-                            st.rerun()
+                        if novo != row['Metodo']: st.session_state.metodos_salvos[row['ID_Ref']] = novo; st.rerun()
 
         elif menu == "📊 Evolução Patrimonial":
             st.subheader("📊 Evolução Patrimonial Dinâmica")
@@ -326,4 +339,4 @@ if menu == "📖 Como Extrair":
     st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1: st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
-    with c2: st.markdown('<div class="step-box"><h3>2️⃣ Baixe o CSV</h3><p>Filtre o período e clique em <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
+    with c2: st.markdown('<div class="step-box"><h3>2️⃣ Baixe o CSV</h3><p>Filtre o período e clique em <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)iv>', unsafe_allow_html=True)
