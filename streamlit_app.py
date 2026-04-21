@@ -35,7 +35,7 @@ st.markdown("""
         margin: 0 !important; text-align: center;
     }
 
-    /* CARDS DE MÉTRICAS */
+    /* CARDS DE MÉTRICAS DO TOPO */
     .metric-card {
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800;
@@ -47,7 +47,7 @@ st.markdown("""
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO */
+    /* CALENDÁRIO PADRONIZADO */
     .monthly-profit-card {
         padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
         margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
@@ -61,10 +61,10 @@ st.markdown("""
     }
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
-    .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+    .day-number { font-size: 1.1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
     .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
 
-    /* PERFORMANCE */
+    /* PERFORMANCE (PADRONIZAÇÃO ABSOLUTA) */
     .perf-card { 
         background: #0f172a; border-radius: 12px; padding: 15px 18px; 
         display: flex; align-items: center; justify-content: space-between; 
@@ -90,7 +90,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS DE SESSÃO ---
+# --- ESTADOS ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -105,7 +105,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Erro: Configure 'users' nos Secrets.")
+    except: st.error("Secrets não configurado.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -132,7 +132,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
-# --- LÓGICA DE DADOS ---
+# --- LÓGICA DE PROCESSAMENTO ---
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
@@ -167,7 +167,7 @@ if uploaded_file is not None:
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
         df_clean = df_clean.sort_values('Dt_Obj')
 
-        # --- ABAS COM FILTROS INDIVIDUAIS ---
+        # --- NAVEGAÇÃO ---
 
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
@@ -212,28 +212,14 @@ if uploaded_file is not None:
                         st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with col2:
                     st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
-                    
-                    # --- LÓGICA DE ESTIMATIVA DE ODD PARA REDS ---
-                    # 1. Calcular Odds Reais apenas para Greens
-                    df_aba['Odd_Estimada'] = np.where(df_aba['V_F'] > 0.05, (df_aba['V_F'] / stake_padrao) + 1, 0)
-                    # 2. Mapear a Odd Média de cada Método
-                    map_odd_metodo = df_aba[df_aba['Odd_Estimada'] > 0].groupby('Metodo')['Odd_Estimada'].mean().to_dict()
-                    # 3. Preencher os Reds com a Odd Média do seu respectivo método
-                    df_aba['Odd_Final'] = df_aba.apply(lambda r: r['Odd_Estimada'] if r['Odd_Estimada'] > 0 else map_odd_metodo.get(r['Metodo'], 2.0), axis=1)
-                    
-                    # Categorização
-                    df_aba['Range'] = pd.cut(df_aba['Odd_Final'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
+                    # Lógica de Range - WR removida conforme solicitado
+                    df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
+                    df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
                     res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
                     res_odd.columns = ['Range', 'Lucro', 'Qtd']
-                    
                     for _, row in res_odd.iterrows():
-                        # Conta acertos reais dentro daquele range estimado
-                        faixa_data = df_aba[df_aba['Range'] == row['Range']]
-                        hits_faixa = len(faixa_data[faixa_data['V_F'] > 0.05])
-                        wr_o = (hits_faixa / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
                         cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
-                        st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
-                
+                        st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with col3:
                     st.markdown('<div class="section-title">Sequências de Green</div>', unsafe_allow_html=True)
                     for i in range(2, 12):
