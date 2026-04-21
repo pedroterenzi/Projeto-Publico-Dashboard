@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import calendar
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, date
 import re
 import numpy as np
 import json
@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
+# --- ESTILIZAÇÃO CSS PREMIUM (REFINADA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -62,7 +62,6 @@ st.markdown("""
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
     .day-number { font-size: 0.9rem; font-weight: 900; color: #ffffff !important; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-    .day-value { font-size: 0.85rem; font-weight: 800; color: white; }
 
     /* PERFORMANCE */
     .perf-card { 
@@ -129,7 +128,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
-# --- PROCESSAMENTO ---
+# --- LÓGICA DE PROCESSAMENTO ---
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
@@ -164,47 +163,51 @@ if uploaded_file is not None:
         df_clean['Hora'] = df_clean['Dt_Obj'].dt.hour
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
 
-        # --- NAVEGAÇÃO ---
+        # --- NAVEGAÇÃO E FILTROS INDIVIDUAIS ---
 
         if menu == "📈 Performance Geral":
-            total_l = df_clean['V_F'].sum()
-            entradas = len(df_clean)
-            wr_geral = (len(df_clean[df_clean['V_F'] > 0]) / entradas * 100) if entradas > 0 else 0
-            odd_m = df_clean[df_clean['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean()
-
-            # Lucro Líquido em Destaque Grande
-            bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
-            st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
+            st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
+            col_f1, col_f2 = st.columns([2,3])
+            with col_f1:
+                p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
             
-            # Demais cartões em linha abaixo
-            c1, c2, c3, c4 = st.columns(4)
-            with c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Acerto</div><div class="metric-value">{wr_geral:.1f}%</div></div>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo Stakes</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
-            with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Total Entradas</div><div class="metric-value">{entradas}</div></div>', unsafe_allow_html=True)
-            with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
+            if len(p_perf) == 2:
+                df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])]
+                total_l = df_aba['V_F'].sum()
+                entradas = len(df_aba)
+                wr_geral = (len(df_aba[df_aba['V_F'] > 0]) / entradas * 100) if entradas > 0 else 0
+                odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("🎯 Por Método")
-                res = df_clean.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
-                res.columns = ['Metodo', 'Lucro', 'Qtd']
-                for _, row in res.sort_values('Lucro', ascending=False).iterrows():
-                    hits = len(df_clean[(df_clean['Metodo'] == row['Metodo']) & (df_clean['V_F'] > 0)])
-                    wr_m = (hits / row['Qtd'] * 100)
-                    cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
-                    st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
-            
-            with col2:
-                st.subheader("📊 Por Range de Odd")
-                df_clean['Odd'] = df_clean['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
-                df_clean['Range'] = pd.cut(df_clean['Odd'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
-                res_odd = df_clean.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
-                res_odd.columns = ['Range', 'Lucro', 'Qtd']
-                for _, row in res_odd.iterrows():
-                    hits = len(df_clean[(df_clean['Range'] == row['Range']) & (df_clean['V_F'] > 0)])
-                    wr_o = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
-                    cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
-                    st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
+                st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
+                
+                c1, c2, c3, c4 = st.columns(4)
+                with c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Acerto</div><div class="metric-value">{wr_geral:.1f}%</div></div>', unsafe_allow_html=True)
+                with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo Stakes</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
+                with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Total Entradas</div><div class="metric-value">{entradas}</div></div>', unsafe_allow_html=True)
+                with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.subheader("🎯 Por Método")
+                    res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
+                    res.columns = ['Metodo', 'Lucro', 'Qtd']
+                    for _, row in res.sort_values('Lucro', ascending=False).iterrows():
+                        hits = len(df_aba[(df_aba['Metodo'] == row['Metodo']) & (df_aba['V_F'] > 0)])
+                        wr_m = (hits / row['Qtd'] * 100)
+                        cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
+                        st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
+                with col2:
+                    st.subheader("📊 Por Range de Odd")
+                    df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
+                    df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
+                    res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
+                    res_odd.columns = ['Range', 'Lucro', 'Qtd']
+                    for _, row in res_odd.iterrows():
+                        hits = len(df_aba[(df_aba['Range'] == row['Range']) & (df_aba['V_F'] > 0)])
+                        wr_o = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
+                        cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
+                        st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
         elif menu == "📅 Diário de Operações":
             ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
@@ -216,9 +219,8 @@ if uploaded_file is not None:
             wr_mes = (len(df_mes[df_mes['V_F'] > 0]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
             
             st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | TAXA DE ACERTO: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
-            
-            cal = calendar.Calendar(firstweekday=0); dias = list(cal.itermonthdays(ano_c, mes_num))
             l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
+            cal = calendar.Calendar(firstweekday=0); dias = list(cal.itermonthdays(ano_c, mes_num))
             html = '<div class="calendar-grid">'
             for n in ['SEG','TER','QUA','QUI','SEX','SAB','DOM']: html += f'<div class="day-name">{n}</div>'
             for d in dias:
@@ -229,56 +231,76 @@ if uploaded_file is not None:
             st.markdown(html + '</div>', unsafe_allow_html=True)
 
         elif menu == "📋 Log de Entradas":
-            st.subheader("📋 Classificação de Entradas")
-            # PAGINAÇÃO NO TOPO
-            search = st.text_input("Filtrar por jogo ou mercado")
-            df_v = df_clean[df_clean[c_desc].str.contains(search, case=False)] if search else df_clean
-            df_v = df_v.sort_values('Dt_Obj', ascending=False)
-            itens = 20
-            total_p = (len(df_v) // itens) + 1
-            col_n1, col_n2 = st.columns([1, 4])
-            with col_n1:
-                p_nav = st.number_input(f"Página (1-{total_p})", 1, total_p, key="p_nav")
-                st.session_state.pagina_atual = p_nav
+            st.subheader("📋 Log de Apostas")
+            col_lf1, col_lf2 = st.columns([2,3])
+            with col_lf1:
+                p_log = st.date_input("Filtrar Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
             
-            start, end = (st.session_state.pagina_atual - 1) * itens, (st.session_state.pagina_atual - 1) * itens + itens
-            for idx, row in df_v.iloc[start:end].iterrows():
-                with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:60]}... | {format_br(row['V_F'])}"):
-                    m_idx = st.session_state.lista_metodos.index(row['Metodo']) if row['Metodo'] in st.session_state.lista_metodos else 0
-                    novo = st.selectbox("Método:", st.session_state.lista_metodos, index=m_idx, key=f"log_{row['ID_Ref']}_{idx}")
-                    if novo != row['Metodo']:
-                        st.session_state.metodos_salvos[row['ID_Ref']] = novo
-                        st.rerun()
+            if len(p_log) == 2:
+                search = st.text_input("Filtrar por nome do jogo/mercado")
+                df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
+                df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
+                df_v = df_v.sort_values('Dt_Obj', ascending=False)
+                
+                itens = 20; total_p = (len(df_v) // itens) + 1
+                col_n1, col_n2 = st.columns([1, 4])
+                with col_n1:
+                    p_nav = st.number_input(f"Página (1-{total_p})", 1, total_p, key="p_nav")
+                    st.session_state.pagina_atual = p_nav
+                
+                start, end = (st.session_state.pagina_atual - 1) * itens, (st.session_state.pagina_atual - 1) * itens + itens
+                for idx, row in df_v.iloc[start:end].iterrows():
+                    with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:60]}... | {format_br(row['V_F'])}"):
+                        m_idx = st.session_state.lista_metodos.index(row['Metodo']) if row['Metodo'] in st.session_state.lista_metodos else 0
+                        novo = st.selectbox("Método:", st.session_state.lista_metodos, index=m_idx, key=f"log_{row['ID_Ref']}_{idx}")
+                        if novo != row['Metodo']:
+                            st.session_state.metodos_salvos[row['ID_Ref']] = novo
+                            st.rerun()
 
         elif menu == "📊 Evolução Patrimonial":
-            df_ev = df_clean.groupby('Data_Apenas')['V_F'].sum().reset_index()
-            df_ev['Acum'] = df_ev['V_F'].cumsum()
-            fig = go.Figure(go.Scatter(x=df_ev['Data_Apenas'], y=df_ev['Acum'], mode='lines', line=dict(color='#10b981', width=3, shape='spline')))
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=500, xaxis=dict(color='#475569'), yaxis=dict(color='#475569', gridcolor='rgba(255,255,255,0.05)'))
-            st.plotly_chart(fig, use_container_width=True)
+            st.subheader("📊 Evolução Patrimonial")
+            col_ef1, col_ef2 = st.columns([2,3])
+            with col_ef1:
+                p_evol = st.date_input("Período do Gráfico", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
+            
+            if len(p_evol) == 2:
+                df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])]
+                df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index()
+                df_ev['Acum'] = df_ev['V_F'].cumsum()
+                fig = go.Figure(go.Scatter(x=df_ev['Data_Apenas'], y=df_ev['Acum'], mode='lines', line=dict(color='#10b981', width=3, shape='spline')))
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=500, xaxis=dict(color='#475569'), yaxis=dict(color='#475569', gridcolor='rgba(255,255,255,0.05)'))
+                st.plotly_chart(fig, use_container_width=True)
 
         elif menu == "⏰ Análise de Janelas":
-            c1, c2 = st.columns(2)
-            with c1:
-                st.subheader("📅 Dias da Semana")
-                d_s = {0:'Segunda', 1:'Terça', 2:'Quarta', 3:'Quinta', 4:'Sexta', 5:'Sábado', 6:'Domingo'}
-                res_d = df_clean.groupby('Dia_Num').agg({'V_F':['sum','count']}).reset_index()
-                res_d.columns = ['Dia','Lucro','Qtd']
-                for _, row in res_d.iterrows():
-                    hits = len(df_clean[(df_clean['Dia_Num'] == row['Dia']) & (df_clean['V_F'] > 0)])
-                    wr_d = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
-                    st.markdown(f'<div class="perf-card"><div><b>{d_s[row["Dia"]]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas | WR: {wr_d:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
-            with c2:
-                st.subheader("⌚ Horários")
-                df_clean['FH'] = pd.cut(df_clean['Hora'], bins=[0,6,12,18,24], labels=['Madrugada (00h-06h)','Manhã (06h-12h)','Tarde (12h-18h)','Noite (18h-00h)'], include_lowest=True)
-                res_h = df_clean.groupby('FH', observed=False).agg({'V_F':['sum','count']}).reset_index()
-                res_h.columns = ['Faixa','Lucro','Qtd']
-                for _, row in res_h.iterrows():
-                    hits = len(df_clean[(df_clean['FH'] == row['Faixa']) & (df_clean['V_F'] > 0)])
-                    wr_h = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
-                    st.markdown(f'<div class="perf-card"><div><b>{row["Faixa"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas | WR: {wr_h:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
+            st.subheader("⏰ Análise de Janelas")
+            col_jf1, col_jf2 = st.columns([2,3])
+            with col_jf1:
+                p_jan = st.date_input("Período das Janelas", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
+            
+            if len(p_jan) == 2:
+                df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.subheader("📅 Dias da Semana")
+                    d_s = {0:'Segunda', 1:'Terça', 2:'Quarta', 3:'Quinta', 4:'Sexta', 5:'Sábado', 6:'Domingo'}
+                    res_d = df_j.groupby('Dia_Num').agg({'V_F':['sum','count']}).reset_index()
+                    res_d.columns = ['Dia','Lucro','Qtd']
+                    for _, row in res_d.iterrows():
+                        hits = len(df_j[(df_j['Dia_Num'] == row['Dia']) & (df_j['V_F'] > 0)])
+                        wr_d = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
+                        st.markdown(f'<div class="perf-card"><div><b>{d_s[row["Dia"]]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_d:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
+                with c2:
+                    st.subheader("⌚ Horários")
+                    df_j['FH'] = pd.cut(df_j['Hora'], bins=[0,6,12,18,24], labels=['Madrugada (00h-06h)','Manhã (06h-12h)','Tarde (12h-18h)','Noite (18h-00h)'], include_lowest=True)
+                    res_h = df_j.groupby('FH', observed=False).agg({'V_F':['sum','count']}).reset_index()
+                    res_h.columns = ['Faixa','Lucro','Qtd']
+                    for _, row in res_h.iterrows():
+                        hits = len(df_j[(df_j['FH'] == row['Faixa']) & (df_j['V_F'] > 0)])
+                        wr_h = (hits / row['Qtd'] * 100) if row['Qtd'] > 0 else 0
+                        st.markdown(f'<div class="perf-card"><div><b>{row["Faixa"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_h:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span><br><small style="color:#475569">ROI: {(row["Lucro"]/(row["Qtd"]*stake_padrao))*100:.1f}%</small></div></div>', unsafe_allow_html=True)
 
         elif menu == "⚙️ Gestão de Métodos":
+            st.subheader("⚙️ Gestão de Métodos")
             novo_m = st.text_input("Novo método:")
             if st.button("Adicionar"):
                 if novo_m and novo_m not in st.session_state.lista_metodos: st.session_state.lista_metodos.append(novo_m); st.success("Adicionado!")
