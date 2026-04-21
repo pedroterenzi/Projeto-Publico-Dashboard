@@ -13,7 +13,7 @@ st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="�
 # --- ESTILIZAÇÃO CSS PREMIUM (REFINADA) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #020617; }
     .main .block-container { max-width: 1200px; padding-top: 1.5rem; margin: auto; }
@@ -47,21 +47,28 @@ st.markdown("""
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO */
+    /* CALENDÁRIO PADRONIZADO */
     .monthly-profit-card {
         padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
         margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 15px; }
-    .day-name { text-align: center; color: #475569; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+    .day-name { text-align: center; color: #475569; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; padding-bottom: 5px; }
+    
     .day-card { 
-        background: #0f172a; border-radius: 12px; padding: 12px; min-height: 95px; 
-        display: flex; flex-direction: column; justify-content: space-between;
-        border: 1px solid rgba(255, 255, 255, 0.03); 
+        background: #0f172a; border-radius: 10px; padding: 10px; min-height: 100px; 
+        display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+        border: 1px solid rgba(255, 255, 255, 0.03); overflow: hidden; box-sizing: border-box;
     }
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
-    .day-number { font-size: 0.9rem; font-weight: 900; color: #ffffff !important; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    
+    .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; }
+    .day-value { 
+        font-size: 0.75rem; font-weight: 800; color: white; 
+        width: 100%; text-align: right; white-space: nowrap; 
+        overflow: hidden; text-overflow: ellipsis;
+    }
 
     /* PERFORMANCE */
     .perf-card { 
@@ -101,7 +108,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Secrets não configurado no Streamlit Cloud.")
+    except: st.error("Secrets não configurado.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -132,7 +139,6 @@ with st.sidebar:
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
-        # Normalização de Colunas
         map_cols = {'Data':['Data','Date','data'],'Desc':['Descrição','Description','Evento','Market'],'Val':['Valor (R$)','Amount','Profit/Loss','Valor'],'Ent':['Entrada de Dinheiro (R$)', 'In'],'Sai':['Saída de Dinheiro (R$)', 'Out']}
         def get_c(key):
             for c in df_raw.columns:
@@ -163,13 +169,11 @@ if uploaded_file is not None:
         df_clean['Hora'] = df_clean['Dt_Obj'].dt.hour
         df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
 
-        # --- NAVEGAÇÃO E FILTROS INDIVIDUAIS ---
+        # --- NAVEGAÇÃO E FILTROS ---
 
         if menu == "📈 Performance Geral":
             st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
-            col_f1, col_f2 = st.columns([2,3])
-            with col_f1:
-                p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
+            p_perf = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
             
             if len(p_perf) == 2:
                 df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])]
@@ -210,6 +214,7 @@ if uploaded_file is not None:
                         st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_o:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
         elif menu == "📅 Diário de Operações":
+            st.markdown("<h2 style='color: white;'>📅 Diário de Operações</h2>", unsafe_allow_html=True)
             ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
             meses_n = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
             mes_sel = st.sidebar.selectbox("Mês", meses_n, index=datetime.now().month - 1)
@@ -232,22 +237,17 @@ if uploaded_file is not None:
 
         elif menu == "📋 Log de Entradas":
             st.subheader("📋 Log de Apostas")
-            col_lf1, col_lf2 = st.columns([2,3])
-            with col_lf1:
-                p_log = st.date_input("Filtrar Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
-            
+            p_log = st.date_input("Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
             if len(p_log) == 2:
-                search = st.text_input("Filtrar por nome do jogo/mercado")
+                search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
                 df_v = df_v.sort_values('Dt_Obj', ascending=False)
-                
                 itens = 20; total_p = (len(df_v) // itens) + 1
                 col_n1, col_n2 = st.columns([1, 4])
                 with col_n1:
                     p_nav = st.number_input(f"Página (1-{total_p})", 1, total_p, key="p_nav")
                     st.session_state.pagina_atual = p_nav
-                
                 start, end = (st.session_state.pagina_atual - 1) * itens, (st.session_state.pagina_atual - 1) * itens + itens
                 for idx, row in df_v.iloc[start:end].iterrows():
                     with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:60]}... | {format_br(row['V_F'])}"):
@@ -259,10 +259,7 @@ if uploaded_file is not None:
 
         elif menu == "📊 Evolução Patrimonial":
             st.subheader("📊 Evolução Patrimonial")
-            col_ef1, col_ef2 = st.columns([2,3])
-            with col_ef1:
-                p_evol = st.date_input("Período do Gráfico", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
-            
+            p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
             if len(p_evol) == 2:
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])]
                 df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index()
@@ -273,15 +270,12 @@ if uploaded_file is not None:
 
         elif menu == "⏰ Análise de Janelas":
             st.subheader("⏰ Análise de Janelas")
-            col_jf1, col_jf2 = st.columns([2,3])
-            with col_jf1:
-                p_jan = st.date_input("Período das Janelas", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
-            
+            p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
             if len(p_jan) == 2:
                 df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.subheader("📅 Dias da Semana")
+                    st.subheader("📅 Dias")
                     d_s = {0:'Segunda', 1:'Terça', 2:'Quarta', 3:'Quinta', 4:'Sexta', 5:'Sábado', 6:'Domingo'}
                     res_d = df_j.groupby('Dia_Num').agg({'V_F':['sum','count']}).reset_index()
                     res_d.columns = ['Dia','Lucro','Qtd']
@@ -305,7 +299,7 @@ if uploaded_file is not None:
             if st.button("Adicionar"):
                 if novo_m and novo_m not in st.session_state.lista_metodos: st.session_state.lista_metodos.append(novo_m); st.success("Adicionado!")
             st.write("Métodos atuais:", ", ".join(st.session_state.lista_metodos))
-            st.download_button("BAIXAR BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
+            st.download_button("BAIXAR MEU BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
 
     except Exception as e: st.error(f"Erro: {e}")
 else: st.info("Suba seu extrato Betfair na lateral.")
