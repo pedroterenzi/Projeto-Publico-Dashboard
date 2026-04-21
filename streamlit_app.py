@@ -204,20 +204,62 @@ if uploaded_file is not None:
 
         elif menu == "📋 Log de Entradas":
             st.subheader("📋 Classificar Métodos por Entrada")
-            st.info("As alterações feitas aqui são salvas automaticamente nesta sessão. Para não perder ao sair, baixe o backup na aba Gestão de Métodos.")
+            st.info("Exibindo 20 entradas por página para maior velocidade.")
             
-            # Filtro rápido
+            # 1. FILTRO DE BUSCA
             search = st.text_input("Filtrar por nome do jogo/mercado")
             df_view = df_clean[df_clean[c_desc].str.contains(search, case=False)] if search else df_clean
+            df_view = df_view.sort_values('Dt_Obj', ascending=False)
 
-            for idx, row in df_view.sort_values('Dt_Obj', ascending=False).iterrows():
-                with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:60]}... | {format_br(row['Valor_Final'])}"):
+            # 2. LÓGICA DE PAGINAÇÃO
+            itens_por_pagina = 20
+            total_entradas = len(df_view)
+            total_paginas = (total_entradas // itens_por_pagina) + (1 if total_entradas % itens_por_pagina > 0 else 0)
+            
+            col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+            if 'pagina_atual' not in st.session_state:
+                st.session_state.pagina_atual = 1
+
+            with col_pag2:
+                # Seletor de página simples
+                pag = st.number_input(f"Página (1 de {total_paginas})", min_value=1, max_value=total_paginas, value=st.session_state.pagina_atual)
+                st.session_state.pagina_atual = pag
+
+            # Cálculo do índice de início e fim
+            start_idx = (st.session_state.pagina_atual - 1) * itens_por_pagina
+            end_idx = start_idx + itens_por_pagina
+
+            # 3. EXIBIÇÃO APENAS DOS ITENS DA PÁGINA
+            st.write(f"Mostrando entradas {start_idx + 1} a {min(end_idx, total_entradas)} de {total_entradas}")
+            
+            for idx, row in df_view.iloc[start_idx:end_idx].iterrows():
+                # Usamos o ID_Ref e a Data para garantir uma chave única para o componente
+                chave_seletor = f"sel_{row['ID_Ref']}_{row['Dt_Obj'].timestamp()}"
+                
+                with st.expander(f"{row['Dt_Obj'].strftime('%d/%m %H:%M')} | {row[c_desc][:50]}... | {format_br(row['Valor_Final'])}"):
                     current_idx = st.session_state.lista_metodos.index(row['Metodo']) if row['Metodo'] in st.session_state.lista_metodos else 0
-                    novo = st.selectbox(f"Selecione o método:", st.session_state.lista_metodos, index=current_idx, key=f"btn_{row['ID_Ref']}")
+                    
+                    novo = st.selectbox(
+                        "Classificar como:", 
+                        st.session_state.lista_metodos, 
+                        index=current_idx, 
+                        key=chave_seletor
+                    )
+                    
                     if novo != row['Metodo']:
                         st.session_state.metodos_salvos[row['ID_Ref']] = novo
                         st.rerun()
 
+            # Botões de navegação no rodapé
+            c_prev, c_next = st.columns(2)
+            with c_prev:
+                if st.button("⬅️ Anterior") and st.session_state.pagina_atual > 1:
+                    st.session_state.pagina_atual -= 1
+                    st.rerun()
+            with c_next:
+                if st.button("Próximo ➡️") and st.session_state.pagina_atual < total_paginas:
+                    st.session_state.pagina_atual += 1
+                    st.rerun()
         elif menu == "⚙️ Gestão de Métodos":
             st.subheader("⚙️ Seus Métodos Personalizados")
             col_a, col_b = st.columns(2)
