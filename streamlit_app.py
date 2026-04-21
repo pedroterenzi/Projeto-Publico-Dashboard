@@ -30,30 +30,26 @@ st.markdown("""
         background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important;
         border: none !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] p {
-        color: white !important; font-weight: 700 !important; font-size: 0.9rem !important;
-        margin: 0 !important; text-align: center;
-    }
 
-    /* CARDS DE MÉTRICAS (TODOS IGUAIS) */
+    /* CARDS DE MÉTRICAS DO TOPO */
     .metric-card {
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        padding: 15px; border-radius: 20px; color: white; font-weight: 800;
+        padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05);
-        height: 120px; width: 100%; margin-bottom: 15px;
-        background: #0f172a;
+        height: 110px; width: 100%; margin-bottom: 15px;
     }
-    .metric-title { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1.2px; margin-bottom: 8px; text-align: center; }
-    .metric-value { font-size: 1.6rem; margin: 0; letter-spacing: -1px; text-align: center; }
+    .metric-card-grande { height: 140px; margin-bottom: 20px; }
+    .metric-title { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1.5px; margin-bottom: 8px; }
+    .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
+    .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO PADRONIZADO */
+    /* CALENDÁRIO */
     .monthly-profit-card {
         padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
         margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
     .day-name { text-align: center; color: #475569; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 5px; }
-    
     .day-card { 
         background: #0f172a; border-radius: 10px; padding: 10px; min-height: 100px; 
         display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
@@ -61,16 +57,14 @@ st.markdown("""
     }
     .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
     .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
-    
     .day-number { font-size: 1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
-    .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
 
-    /* PERFORMANCE */
+    /* PERFORMANCE (MÉTODOS, ODDS, SEQUENCIAS) - ALINHADOS */
     .perf-card { 
         background: #0f172a; border-radius: 12px; padding: 15px 18px; 
         display: flex; align-items: center; justify-content: space-between; 
         border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 10px;
-        min-height: 85px;
+        min-height: 90px; width: 100%; box-sizing: border-box;
     }
     .val-pos { color: #10b981; font-weight: 800; }
     .val-neg { color: #f43f5e; font-weight: 800; }
@@ -78,7 +72,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES AUXILIARES ---
+# --- FUNÇÕES ---
 def format_br(val):
     prefix = "-" if val < 0 else ""
     return f"{prefix}R$ {abs(val):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -88,7 +82,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS DE SESSÃO ---
+# --- ESTADOS ---
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
 if 'lista_metodos' not in st.session_state: 
@@ -103,7 +97,7 @@ def check_login():
             st.session_state.auth = True
             st.rerun()
         else: st.error("Acesso Negado.")
-    except: st.error("Secrets não configurado.")
+    except: st.error("Erro: Configure 'users' nos Secrets.")
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -130,7 +124,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("Menu", ["📈 Performance Geral", "📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "⚙️ Gestão de Métodos", "📖 Como Extrair"], label_visibility="collapsed")
 
-# --- LÓGICA DE PROCESSAMENTO ---
+# --- LÓGICA DE DADOS ---
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
@@ -178,7 +172,6 @@ if uploaded_file is not None:
                 wr_geral = (len(df_aba[df_aba['V_F'] > 0]) / entradas * 100) if entradas > 0 else 0
                 odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
 
-                # Lógica de Sequências
                 curr_streak = 0
                 for v in reversed(df_aba['V_F'].tolist()):
                     if v > 0: curr_streak += 1
@@ -186,21 +179,18 @@ if uploaded_file is not None:
                 streak_id = (df_aba['V_F'] <= 0).cumsum()
                 streak_counts = df_aba[df_aba['V_F'] > 0].groupby(streak_id).size().value_counts().to_dict()
 
-                # Grid 3x2 para todos os cartões do mesmo tamanho
-                bg_l = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
+                bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
+                st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
                 
-                row1_c1, row1_c2, row1_c3 = st.columns(3)
-                with row1_c1: st.markdown(f'<div class="metric-card" style="background: {bg_l};"><div class="metric-title">Lucro Líquido</div><div class="metric-value">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
-                with row1_c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Acerto</div><div class="metric-value">{wr_geral:.1f}%</div></div>', unsafe_allow_html=True)
-                with row1_c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo Stakes</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
-                
-                row2_c1, row2_c2, row2_c3 = st.columns(3)
-                with row2_c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Total Entradas</div><div class="metric-value">{entradas}</div></div>', unsafe_allow_html=True)
-                with row2_c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
-                with row2_c3: st.markdown(f'<div class="metric-card" style="background: #1e293b;"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color: #10b981;">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
+                c1, c2, c3, c4, c5 = st.columns(5)
+                with c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Acerto</div><div class="metric-value">{wr_geral:.1f}%</div></div>', unsafe_allow_html=True)
+                with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo Stakes</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
+                with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Total Entradas</div><div class="metric-value">{entradas}</div></div>', unsafe_allow_html=True)
+                with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
+                with c5: st.markdown(f'<div class="metric-card" style="background: #1e293b;"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color: #10b981;">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3 = st.columns(3) # Colunas com o mesmo peso visual
                 with col1:
                     st.subheader("🎯 Por Método")
                     res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
@@ -229,7 +219,6 @@ if uploaded_file is not None:
                         st.markdown(f'<div class="perf-card"><div><b>{label}</b></div><div style="text-align:right;"><span class="val-pos">{count} vezes</span></div></div>', unsafe_allow_html=True)
 
         elif menu == "📅 Diário de Operações":
-            st.markdown("<h2 style='color: white;'>📅 Diário de Operações</h2>", unsafe_allow_html=True)
             ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
             meses_n = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
             mes_sel = st.sidebar.selectbox("Mês", meses_n, index=datetime.now().month - 1)
@@ -237,10 +226,9 @@ if uploaded_file is not None:
             df_mes = df_clean[(df_clean['Dt_Obj'].dt.year == ano_c) & (df_clean['Dt_Obj'].dt.month == mes_num)]
             l_mes = df_mes['V_F'].sum()
             wr_mes = (len(df_mes[df_mes['V_F'] > 0]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
-            
-            st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | TAXA DE ACERTO: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | WR: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
             l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
-            cal_obj = calendar.Calendar(firstweekday=0); dias = list(cal_obj.itermonthdays(ano_c, mes_num))
+            cal = calendar.Calendar(firstweekday=0); dias = list(cal.itermonthdays(ano_c, mes_num))
             html = '<div class="calendar-grid">'
             for n in ['SEG','TER','QUA','QUI','SEX','SAB','DOM']: html += f'<div class="day-name">{n}</div>'
             for d in dias:
@@ -252,7 +240,7 @@ if uploaded_file is not None:
 
         elif menu == "📋 Log de Entradas":
             st.subheader("📋 Log de Apostas")
-            p_log = st.date_input("Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
+            p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
             if len(p_log) == 2:
                 search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
@@ -273,7 +261,7 @@ if uploaded_file is not None:
                             st.rerun()
 
         elif menu == "📊 Evolução Patrimonial":
-            st.subheader("📊 Evolução Patrimonial")
+            st.subheader("📊 Evolução Patrimonial Dinâmica")
             p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
             if len(p_evol) == 2:
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])].copy()
