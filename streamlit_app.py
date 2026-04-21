@@ -339,4 +339,4 @@ if menu == "📖 Como Extrair":
     st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1: st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
-    with c2: st.markdown('<div class="step-box"><h3>2️⃣ Baixe o CSV</h3><p>Filtre o período e clique em <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)iv>', unsafe_allow_html=True)
+    with c2: st.markdown('<div class="step-box"><h3>2️⃣ Baixe o CSV</h3><p>Filtre o período e clique em <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
