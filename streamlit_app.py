@@ -36,18 +36,24 @@ def buscar_odds_evento(event_id):
                 ox = "---"
                 o2 = "---"
                 for o in odds:
-                    # LÓGICA DE CONVERSÃO DIRETAMENTE NO LOOP PARA NÃO QUEBRAR
-                    val_bruto = str(o.get('fractionalValue', o.get('value')))
-                    if "/" in val_bruto:
-                        num, den = val_bruto.split("/")
-                        decimal = (int(num) / int(den)) + 1
-                        val_final = f"{decimal:.2f}".replace(".", ",")
-                    else:
-                        val_final = val_bruto.replace(".", ",")
+                    # PEGAMOS O VALOR BRUTO (PODE SER FRAÇÃO OU DECIMAL)
+                    val_original = str(o.get('fractionalValue', o.get('value')))
                     
-                    if o.get('name') == '1': o1 = val_final
-                    if o.get('name') == 'X': ox = val_final
-                    if o.get('name') == '2': o2 = val_final
+                    # LÓGICA DE CONVERSÃO PARA PADRÃO BRASIL (DECIMAL)
+                    if "/" in val_original:
+                        try:
+                            num, den = val_original.split("/")
+                            # Cálculo: (Dividir + 1) para chegar no decimal
+                            decimal_val = (float(num) / float(den)) + 1
+                            val_convertido = f"{decimal_val:.2f}".replace(".", ",")
+                        except:
+                            val_convertido = val_original
+                    else:
+                        val_convertido = val_original.replace(".", ",")
+
+                    if o.get('name') == '1': o1 = val_convertido
+                    if o.get('name') == 'X': ox = val_convertido
+                    if o.get('name') == '2': o2 = val_convertido
                 return o1, ox, o2
     except:
         pass
@@ -76,7 +82,7 @@ def buscar_jogos_realtime():
                     liga = event.get('tournament', {}).get('name', 'Geral').upper()
                     event_id = event.get('id')
                     
-                    # Busca as Odds reais via API (A função buscar_odds_evento já faz a conversão interna)
+                    # Busca as Odds reais via API (com a conversão decimal já aplicada lá dentro)
                     o1, ox, o2 = buscar_odds_evento(event_id)
                     
                     jogo_info = {
@@ -107,7 +113,7 @@ prognosticos_dia = [
     }
 ]
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE CONFORME SOLICITADO) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
