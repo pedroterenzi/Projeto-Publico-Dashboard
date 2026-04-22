@@ -6,11 +6,17 @@ from datetime import datetime, date
 import re
 import numpy as np
 import json
+import urllib.parse
 
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
+# --- CONFIGURAÇÃO DE CONTATO ---
+CELULAR_VENDAS = "5519971374936"
+MSG_WHATSAPP = urllib.parse.quote("Olá! Vi o site e quero liberar meu acesso Premium no Bet Analytics Pro.")
+LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
+
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -23,6 +29,18 @@ st.markdown("""
     .hero-subtitle { color: #94a3b8; font-size: 1.3rem; text-align: center; margin-bottom: 40px; }
     .pain-box { background: rgba(244, 63, 94, 0.05); border-left: 5px solid #f43f5e; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
     .solution-box { background: rgba(16, 185, 129, 0.05); border-left: 5px solid #10b981; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+
+    /* BOTÃO WHATSAPP ESTILIZADO */
+    .btn-wpp {
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white !important; text-decoration: none !important;
+        font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        padding: 15px; border-radius: 12px; margin-bottom: 10px;
+        text-align: center; transition: all 0.3s ease;
+        border: none; width: 100%;
+    }
+    .btn-wpp:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
 
     /* NAVEGAÇÃO SIDEBAR */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
@@ -135,9 +153,15 @@ if st.session_state.page == 'landing':
         """, unsafe_allow_html=True)
         
         st.write("---")
-        if st.button("🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA", use_container_width=True):
+        # BOTÃO PREMIUM -> WHATSAPP
+        st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp">🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA</a>', unsafe_allow_html=True)
+        
+        # BOTÃO LOGIN PREMIUM (EXISTENTE)
+        if st.button("JÁ SOU CLIENTE (FAZER LOGIN)", use_container_width=True):
             st.session_state.page = 'login'
             st.rerun()
+
+        # BOTÃO FREE -> DASHBOARD
         if st.button("🆓 TESTAR VERSÃO LIMITADA (GRÁTIS)", use_container_width=True):
             st.session_state.auth = True
             st.session_state.is_premium = False
@@ -149,7 +173,6 @@ if st.session_state.page == 'landing':
         try: st.image("capa_venda.png", use_container_width=True)
         except: st.info("🖼️ [Imagem da Performance Geral]")
         
-        # O CALENDÁRIO FOI MOVIDO PARA CÁ
         st.markdown("#### 📅 Calendário de Consistência")
         try: st.image("diario_demo.png", use_container_width=True)
         except: st.info("🖼️ [Visual do Calendário]")
@@ -176,7 +199,7 @@ if st.session_state.page == 'landing':
 elif st.session_state.page == 'login':
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown("<div style='text-align: center; margin-top: 50px;'><h1 style='color: #10b981;'>💎 ACESSO PREMIUM</h1></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: center; margin-top: 50px;'><h1 style='color: #10b981;'>💎 ACESSO RESTRITO</h1></div>", unsafe_allow_html=True)
         with st.container():
             st.markdown("<div style='background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
             u_in = st.text_input("E-mail")
@@ -203,6 +226,11 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
     
     with st.sidebar:
         st.markdown(f"<h2 style='color: #10b981;'>💎 BET {'PRO' if st.session_state.is_premium else 'FREE'}</h2>", unsafe_allow_html=True)
+        
+        # BOTÃO PARA ASSINAR PRO (VISÍVEL APENAS NO FREE)
+        if not st.session_state.is_premium:
+            st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp" style="font-size: 0.8rem; padding: 10px;">🚀 QUERO SER PREMIUM</a>', unsafe_allow_html=True)
+
         if st.button("Sair / Trocar Conta"):
             st.session_state.auth = False
             st.session_state.page = 'landing'
@@ -262,10 +290,9 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
             df_clean = df_clean.sort_values('Dt_Obj')
 
-            # --- RENDERIZAÇÃO DAS ABAS ---
             if menu == "📈 Performance Geral":
                 st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
-                p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_perf = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
                 if len(p_perf) == 2:
                     df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])].copy()
                     total_l = df_aba['V_F'].sum(); entr = len(df_aba)
@@ -277,32 +304,31 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         elif v < -0.05: break
 
                     bg = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
-                    st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg};"><div class="metric-title">Lucro Líquido</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
                     c1,c2,c3,c4,c5 = st.columns(5)
                     with c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa Acerto</div><div class="metric-value">{wr:.1f}%</div></div>', unsafe_allow_html=True)
                     with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo STK</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
                     with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Entradas</div><div class="metric-value">{entr}</div></div>', unsafe_allow_html=True)
                     with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
                     with c5: st.markdown(f'<div class="metric-card" style="background:#1e293b"><div class="metric-title">Atual</div><div class="metric-value" style="color:#10b981">{curr_streak}🔥</div></div>', unsafe_allow_html=True)
-
                     st.markdown("<br>", unsafe_allow_html=True)
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown('<div class="section-title">Por Método</div>', unsafe_allow_html=True)
                         res = df_aba.groupby('Metodo').agg({'V_F':['sum','count']}).reset_index()
                         res.columns = ['Metodo','Lucro','Qtd']
-                        for _, r in res.sort_values('Lucro', ascending=False).iterrows():
-                            hits = len(df_aba[(df_aba['Metodo']==r['Metodo']) & (df_aba['V_F']>0.05)])
-                            wr_m = (hits/r['Qtd']*100) if r['Qtd']>0 else 0
-                            st.markdown(f'<div class="perf-card"><div><b>{r["Metodo"]}</b><br><small>{int(r["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if r["Lucro"]>=0 else "val-neg"}">{format_br(r["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                        for _, row in res.sort_values('Lucro', ascending=False).iterrows():
+                            wr_m = (len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
+                            cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
+                            st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                     with col2:
                         st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
                         df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
                         df_aba['Range'] = pd.cut(df_aba['Odd_T'], bins=[0,1.3,1.59,1.79,2.09,3.0,1000], labels=['1.00-1.30','1.31-1.59','1.60-1.79','1.80-2.09','2.10-3.00','3.00+'])
-                        res_o = df_aba.groupby('Range', observed=False).agg({'V_F':['sum','count']}).reset_index()
-                        res_o.columns = ['Range','Lucro','Qtd']
-                        for _, r in res_o.iterrows():
-                            st.markdown(f'<div class="perf-card"><div><b>Odd: {r["Range"]}</b><br><small>{int(r["Qtd"])} entradas</small></div><div style="text-align:right;"><span class="{"val-pos" if r["Lucro"]>=0 else "val-neg"}">{format_br(r["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                        res_odd = df_aba.groupby('Range', observed=False).agg({'V_F': ['sum', 'count']}).reset_index()
+                        res_odd.columns = ['Range', 'Lucro', 'Qtd']
+                        for _, row in res_odd.iterrows():
+                            st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "📅 Diário de Operações" and st.session_state.is_premium:
                 ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
@@ -313,7 +339,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 l_mes = df_mes['V_F'].sum(); wr_mes = (len(df_mes[df_mes['V_F'] > 0.05]) / len(df_mes) * 100) if len(df_mes) > 0 else 0
                 st.markdown(f'<div class="monthly-profit-card" style="border: 2px solid {"#10b981" if l_mes>=0 else "#f43f5e"};"><small>LUCRO {mes_sel.upper()} | WR: {wr_mes:.1f}%</small><br><span style="font-size: 2rem;">{format_br(l_mes)}</span></div>', unsafe_allow_html=True)
                 l_dia = df_mes.groupby(df_mes['Dt_Obj'].dt.day)['V_F'].sum()
-                cal_o = calendar.Calendar(firstweekday=0); dias = list(cal_o.itermonthdays(ano_c, mes_num))
+                cal_obj = calendar.Calendar(firstweekday=0); dias = list(cal_obj.itermonthdays(ano_c, mes_num))
                 html = '<div class="calendar-grid">'
                 for n in ['SEG','TER','QUA','QUI','SEX','SAB','DOM']: html += f'<div class="day-name">{n}</div>'
                 for d in dias:
@@ -324,7 +350,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.markdown(html + '</div>', unsafe_allow_html=True)
 
             elif menu == "📋 Log de Entradas" and st.session_state.is_premium:
-                p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
                 search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
@@ -339,7 +365,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         if novo != row['Metodo']: st.session_state.metodos_salvos[row['ID_Ref']] = novo; st.rerun()
 
             elif menu == "📊 Evolução Patrimonial" and st.session_state.is_premium:
-                p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])].copy()
                 df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index(); df_ev['Acum'] = df_ev['V_F'].cumsum()
                 fig = go.Figure(); y, x = df_ev['Acum'].tolist(), df_ev['Data_Apenas'].tolist()
@@ -351,7 +377,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.plotly_chart(fig, use_container_width=True)
 
             elif menu == "⏰ Análise de Janelas" and st.session_state.is_premium:
-                p_jan = st.date_input("Período das Janelas", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
                 df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
                 c1, c2 = st.columns(2)
                 with c1:
@@ -359,20 +385,20 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     d_s = {0:'Segunda', 1:'Terça', 2:'Quarta', 3:'Quinta', 4:'Sexta', 5:'Sábado', 6:'Domingo'}
                     res_d = df_j.groupby('Dia_Num').agg({'V_F':['sum','count']}).reset_index()
                     res_d.columns = ['Dia','Lucro','Qtd']
-                    for _, r in res_d.iterrows():
-                        wr_d = (len(df_j[(df_j['Dia_Num']==r['Dia']) & (df_j['V_F']>0.05)])/r['Qtd']*100) if r['Qtd']>0 else 0
-                        st.markdown(f'<div class="perf-card"><div><b>{d_s[r["Dia"]]}</b><br><small>{int(r["Qtd"])} entr. | WR: {wr_d:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if r["Lucro"]>=0 else "val-neg"}">{format_br(r["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                    for _, row in res_d.iterrows():
+                        wr_d = (len(df_j[(df_j['Dia_Num']==row['Dia']) & (df_j['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
+                        st.markdown(f'<div class="perf-card"><div><b>{d_s[row["Dia"]]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_d:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with c2:
                     st.markdown('<div class="section-title">Horários</div>', unsafe_allow_html=True)
-                    df_j['FH'] = pd.cut(df_j['Hora'], bins=[0,6,12,18,24], labels=['Madrugada(00-06)','Manhã(06-12)','Tarde(12-18)','Noite(18-00)'], include_lowest=True)
+                    df_j['FH'] = pd.cut(df_j['Hora'], bins=[0,6,12,18,24], labels=['Madrugada (00h-06h)','Manhã (06h-12h)','Tarde (12h-18h)','Noite (18h-00h)'], include_lowest=True)
                     res_h = df_j.groupby('FH', observed=False).agg({'V_F':['sum','count']}).reset_index()
                     res_h.columns = ['Faixa','Lucro','Qtd']
-                    for _, r in res_h.iterrows():
-                        wr_h = (len(df_j[(df_j['FH']==r['Faixa']) & (df_j['V_F']>0.05)])/r['Qtd']*100) if r['Qtd']>0 else 0
-                        st.markdown(f'<div class="perf-card"><div><b>{r["Faixa"]}</b><br><small>{int(r["Qtd"])} entr. | WR: {wr_h:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if r["Lucro"]>=0 else "val-neg"}">{format_br(r["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                    for _, row in res_h.iterrows():
+                        wr_h = (len(df_j[(df_j['FH']==row['Faixa']) & (df_j['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
+                        st.markdown(f'<div class="perf-card"><div><b>{row["Faixa"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_h:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "🔥 Sequências" and st.session_state.is_premium:
-                p_seq = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_seq = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_seq")
                 df_s = df_clean[(df_clean['Data_Apenas'] >= p_seq[0]) & (df_clean['Data_Apenas'] <= p_seq[1])].copy()
                 str_g = {i: 0 for i in range(2, 12)}; temp_g = 0
                 str_r = {i: 0 for i in range(2, 12)}; temp_r = 0
@@ -386,20 +412,21 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     else: temp_g = 0; temp_r = 0
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.markdown('<div class="section-title">Sequências Greens</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="section-title">Sequências de Greens</div>', unsafe_allow_html=True)
                     for i in range(2, 12): st.markdown(f'<div class="perf-card"><div><b>{i} Greens Seguidos</b></div><div style="text-align:right;"><span class="val-pos">{str_g[i]} vezes</span></div></div>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown('<div class="section-title">Sequências Reds</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="section-title">Sequências de Reds</div>', unsafe_allow_html=True)
                     for i in range(2, 12): st.markdown(f'<div class="perf-card"><div><b>{i} Reds Seguidos</b></div><div style="text-align:right;"><span class="val-neg">{str_r[i]} vezes</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "⚙️ Gestão de Métodos" and st.session_state.is_premium:
+                st.subheader("⚙️ Métodos")
                 novo_m = st.text_input("Novo método:")
                 if st.button("Adicionar"):
                     if novo_m and novo_m not in st.session_state.lista_metodos: st.session_state.lista_metodos.append(novo_m); st.rerun()
                 st.write("Atuais:", ", ".join(st.session_state.lista_metodos))
-                st.download_button("BAIXAR BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
+                st.download_button("BAIXAR MEU BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
 
-        except Exception as e: st.error(f"Erro: {e}")
+        except Exception as e: st.error(f"Erro Crítico: {e}")
     else: st.info("Suba seu extrato Betfair na lateral para começar.")
 
 # --- BLOCO FINAL ---
@@ -409,7 +436,7 @@ if st.session_state.page == 'dashboard' and st.session_state.auth:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
-            st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas no site da Betfair.</p></div>', unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="step-box"><h3>3️⃣ Baixe o CSV</h3><p>Clique no botão <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
-            st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo na lateral esquerda.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo de upload no menu à esquerda deste site.</p></div>', unsafe_allow_html=True)
