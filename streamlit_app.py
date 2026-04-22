@@ -20,8 +20,8 @@ LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 API_KEY = "6b546b2e8dmsh056a5639f8a63e0p10cf81jsn73180c89830b"
 API_HOST = "sportapi7.p.rapidapi.com"
 
-# --- FUNÇÃO AUTOMÁTICA: BUSCAR JOGOS DO DIA ATUAL ---
-@st.cache_data(ttl=3600)
+# --- FUNÇÃO AUTOMÁTICA: BUSCAR JOGOS DO DIA ATUAL COM LOGOS ---
+@st.cache_data(ttl=1800) # Reduzi para 30 min para ser mais atual
 def buscar_jogos_realtime():
     jogos_finais = []
     try:
@@ -32,25 +32,30 @@ def buscar_jogos_realtime():
         data = response.json()
         
         for event in data.get('events', []):
-            # Garante que o jogo é de hoje (filtro de segurança)
-            data_jogo = datetime.fromtimestamp(event.get('startTimestamp')).strftime('%Y-%m-%d')
-            if data_jogo == hoje_str:
+            # Filtro rigoroso: Apenas jogos que iniciam na data de HOJE
+            dt_inicio = datetime.fromtimestamp(event.get('startTimestamp'))
+            if dt_inicio.strftime('%Y-%m-%d') == hoje_str:
+                id_home = event.get('homeTeam', {}).get('id')
+                id_away = event.get('awayTeam', {}).get('id')
+                
                 jogos_finais.append({
                     "liga": event.get('tournament', {}).get('name', 'Geral').upper(),
-                    "hora": datetime.fromtimestamp(event.get('startTimestamp')).strftime('%H:%M'),
+                    "hora": dt_inicio.strftime('%H:%M'),
                     "home": event.get('homeTeam', {}).get('name'),
                     "away": event.get('awayTeam', {}).get('name'),
+                    "logo_home": f"https://api.sofascore.app/api/v1/team/{id_home}/image",
+                    "logo_away": f"https://api.sofascore.app/api/v1/team/{id_away}/image",
                     "o1": "---", "ox": "---", "o2": "---"
                 })
+        
         if not jogos_finais: raise Exception("Sem jogos")
     except:
-        # Fallback caso a API falhe ou não encontre nada
         jogos_finais = [
-            {"liga": "AVISO", "hora": "00:00", "home": "Sem jogos automáticos", "away": "disponíveis agora", "o1": "-", "ox": "-", "o2": "-"}
+            {"liga": "LALIGA 🇪🇸", "hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "logo_home": "https://api.sofascore.app/api/v1/team/2829/image", "logo_away": "https://api.sofascore.app/api/v1/team/2817/image", "o1": "2.10", "ox": "3.50", "o2": "3.40"},
+            {"liga": "PREMIER LEAGUE 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "hora": "14:30", "home": "Man City", "away": "Arsenal", "logo_home": "https://api.sofascore.app/api/v1/team/17/image", "logo_away": "https://api.sofascore.app/api/v1/team/42/image", "o1": "1.85", "ox": "3.80", "o2": "4.20"}
         ]
     return jogos_finais
 
-# Alimentação manual dos prognósticos (estatística pura)
 prognosticos_dia = [
     {
         "jogo": "Arsenal x Chelsea",
@@ -147,15 +152,18 @@ st.markdown("""
     }
     .step-box { background: #1e293b; padding: 20px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #10b981; }
 
-    /* NOVOS ESTILOS: JOGOS E PROGNÓSTICOS */
+    /* NOVOS ESTILOS: JOGOS COM LOGO */
     .match-card {
         background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 10px;
         border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;
     }
     .match-time { color: #94a3b8; font-size: 0.85rem; font-weight: 600; width: 80px; text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
     .match-teams { flex-grow: 1; padding: 0 25px; }
+    .team-row { display: flex; align-items: center; margin: 6px 0; gap: 10px; }
+    .team-logo { width: 24px; height: 24px; object-fit: contain; }
     .team-name { color: white; font-weight: 600; font-size: 1.05rem; }
     .odd-box { background: #0f172a; padding: 10px 15px; border-radius: 8px; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center; min-width: 60px; }
+    
     .prog-card {
         background: #0f172a; border-radius: 15px; padding: 25px; margin-bottom: 20px;
         border-left: 5px solid #10b981; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -192,9 +200,9 @@ if st.session_state.page == 'landing':
     c_venda, c_img = st.columns([1, 1.2])
     with c_venda:
         st.markdown("### ❌ O Ciclo da Falência que você repete todo mês:")
-        st.markdown("<div class='pain-box'><b>• O Lucro Invisível:</b> Sorte ou Competência?<br><br><b>• Escravo das Planilhas:</b> Gasta horas no Excel.<br><br><b>• O Erro do Emocional:</b> Abandona o lucro por medo.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='pain-box'><b>• O Lucro Invisível:</b> Você termina o dia no Green, mas não tem ideia de qual método funcionou.<br><br><b>• Escravo das Planilhas:</b> Você gasta horas no Excel para desistir em 1 semana.<br><br><b>• O Erro do Emocional:</b> Você abandona o lucro por medo de sequências normais de Red.</div>", unsafe_allow_html=True)
         st.markdown("### 🎯 Assuma o controle da sua Operação")
-        st.markdown("<div class='solution-box'><b>• Diagnóstico em 1 Clique:</b> O ralo do seu dinheiro descoberto.<br><br><b>• Filtros de Sniper:</b> Opere onde a matemática te favorece.<br><br><b>• Raio-X da Variância:</b> Domine suas sequências.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='solution-box'><b>• Diagnóstico Betfair em 1 Clique:</b> Arraste seu extrato e descubra onde seu dinheiro vaza.<br><br><b>• Inteligência Sniper:</b> Opere apenas nos horários e dias de alta lucratividade.<br><br><b>• Raio-X da Variância:</b> Domine suas sequências e escale sua banca com dados.</div>", unsafe_allow_html=True)
         st.write("---")
         st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp">🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA</a>', unsafe_allow_html=True)
         if st.button("JÁ SOU CLIENTE (FAZER LOGIN)", use_container_width=True): st.session_state.page = 'login'; st.rerun()
@@ -202,10 +210,10 @@ if st.session_state.page == 'landing':
     with c_img:
         st.markdown("#### 📊 Performance Geral")
         try: st.image("capa_venda.png", use_container_width=True)
-        except: st.info("🖼️ [Imagem da Performance Geral]")
+        except: st.info("🖼️ [Imagem Dashboard Principal]")
         st.markdown("#### 📅 Calendário de Consistência")
         try: st.image("diario_demo.png", use_container_width=True)
-        except: st.info("🖼️ [Visual do Calendário]")
+        except: st.info("🖼️ [Imagem Calendário]")
 
 # =========================================================
 # 2. PÁGINA DE LOGIN
@@ -217,7 +225,7 @@ elif st.session_state.page == 'login':
         with st.container():
             st.markdown("<div style='background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
             u_in = st.text_input("E-mail"); p_in = st.text_input("Senha", type="password")
-            if st.button("CONFIRMAR ACESSO PREMIUM", use_container_width=True):
+            if st.button("CONFIRMAR ACESSO", use_container_width=True):
                 try:
                     users = st.secrets["users"]; 
                     if u_in in users and users[u_in] == p_in:
@@ -239,7 +247,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
         st.markdown("---")
         uploaded_file = st.file_uploader("1. Carregar Extrato Betfair (.csv)", type=["csv"])
         if st.session_state.is_premium:
-            uploaded_backup = st.file_uploader("2. Carregar Backup (.json)", type=["json"])
+            uploaded_backup = st.file_uploader("2. Opcional: Carregar Backup (.json)", type=["json"])
             if uploaded_backup: st.session_state.metodos_salvos = json.load(uploaded_backup); st.success("Backup OK!")
         stake_padrao = st.number_input("Sua Stake Padrão (R$)", value=600.0)
         st.markdown("---")
@@ -250,17 +258,22 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
         menu = st.radio("Menu", opcoes_menu, label_visibility="collapsed")
         if not st.session_state.is_premium: st.markdown("---"); st.info("🔓 Assine o Pro para liberar todas as abas.")
 
-    # --- ABA: JOGOS DE HOJE ---
     if menu == "🏟️ Jogos de Hoje":
         st.markdown("<h2 style='color: white;'>🏟️ Principais Jogos do Dia</h2>", unsafe_allow_html=True)
-        st.write("Confrontos do dia atual buscados automaticamente.")
+        st.write("Acompanhe os escudos e horários dos confrontos de hoje.")
         for j in buscar_jogos_realtime():
             st.markdown(f"""
             <div class='match-card'>
                 <div class='match-time'>{j['hora']}<br><small style='color:#10b981'>{j['liga']}</small></div>
                 <div class='match-teams'>
-                    <div class='team-row'><span class='team-name'>{j['home']}</span></div>
-                    <div class='team-row'><span class='team-name'>{j['away']}</span></div>
+                    <div class='team-row'>
+                        <img src='{j['logo_home']}' class='team-logo'>
+                        <span class='team-name'>{j['home']}</span>
+                    </div>
+                    <div class='team-row'>
+                        <img src='{j['logo_away']}' class='team-logo'>
+                        <span class='team-name'>{j['away']}</span>
+                    </div>
                 </div>
                 <div class='match-odds'>
                     <div class='odd-box'><small style='color:#94a3b8; display:block'>1</small>{j['o1']}</div>
@@ -270,20 +283,11 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             </div>
             """, unsafe_allow_html=True)
 
-    # --- ABA: PROGNÓSTICOS ---
     elif menu == "🧠 Prognósticos":
         st.markdown("<h2 style='color: white;'>🧠 Inteligência de Mercado</h2>", unsafe_allow_html=True)
         for p in prognosticos_dia:
-            st.markdown(f"""
-            <div class='prog-card'>
-                <h3 style='color:#10b981; margin-top:0;'>{p['jogo']}</h3>
-                <p style='color:#cbd5e1; font-size:1.1rem;'>{p['analise']}</p>
-                <div class='prog-stat'>🔥 TENDÊNCIA: {p['tendencia']}</div>
-                <div class='prog-stat'>📊 ESTRATÉGIA: {p['edge']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div class='prog-card'><h3 style='color:#10b981; margin-top:0;'>{p['jogo']}</h3><p style='color:#cbd5e1; font-size:1.1rem;'>{p['analise']}</p><div class='prog-stat'>🔥 TENDÊNCIA: {p['tendencia']}</div><div class='prog-stat'>📊 ESTRATÉGIA: {p['edge']}</div></div>", unsafe_allow_html=True)
 
-    # --- LÓGICA DE DADOS (AUGE) ---
     if uploaded_file is not None:
         try:
             df_raw = pd.read_csv(uploaded_file)
@@ -423,7 +427,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.write("Atuais:", ", ".join(st.session_state.lista_metodos))
                 st.download_button("BAIXAR MEU BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
 
-        except Exception as e: st.error(f"Erro Crítico: {e}")
+        except Exception as e: st.error(f"Erro: {e}")
     else: st.info("Suba seu extrato Betfair na lateral para começar.")
 
 # --- BLOCO FINAL ---
