@@ -20,6 +20,20 @@ LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 API_KEY = "6b546b2e8dmsh056a5639f8a63e0p10cf81jsn73180c89830b"
 API_HOST = "sportapi7.p.rapidapi.com"
 
+# --- FUNÇÃO PARA CONVERTER ODD FRACIONÁRIA EM DECIMAL ---
+def converter_odd_decimal(valor):
+    if not valor or valor == "---":
+        return "---"
+    try:
+        valor_str = str(valor)
+        if "/" in valor_str:
+            num, den = valor_str.split("/")
+            decimal = (int(num) / int(den)) + 1
+            return f"{decimal:.2f}".replace(".", ",")
+        return valor_str.replace(".", ",")
+    except:
+        return valor
+        
 # --- FUNÇÃO PARA BUSCAR ODDS DE UM EVENTO ESPECÍFICO ---
 def buscar_odds_evento(event_id):
     try:
@@ -36,9 +50,13 @@ def buscar_odds_evento(event_id):
                 ox = "---"
                 o2 = "---"
                 for o in odds:
-                    if o.get('name') == '1': o1 = o.get('fractionalValue', o.get('value'))
-                    if o.get('name') == 'X': ox = o.get('fractionalValue', o.get('value'))
-                    if o.get('name') == '2': o2 = o.get('fractionalValue', o.get('value'))
+                    # Aplica a conversão de fração para decimal aqui
+                    valor_original = o.get('fractionalValue', o.get('value'))
+                    valor_convertido = converter_odd_decimal(valor_original)
+                    
+                    if o.get('name') == '1': o1 = valor_convertido
+                    if o.get('name') == 'X': ox = valor_convertido
+                    if o.get('name') == '2': o2 = valor_convertido
                 return o1, ox, o2
     except:
         pass
@@ -163,6 +181,9 @@ st.markdown("""
     .team-name { color: white; font-weight: 600; font-size: 1.05rem; display: block; }
     .match-odds { display: flex; gap: 10px; }
     .odd-box { background: #0f172a; padding: 10px 15px; border-radius: 8px; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center; min-width: 60px; }
+
+    .prog-card { background: #0f172a; border-radius: 15px; padding: 25px; margin-bottom: 20px; border-left: 5px solid #10b981; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .prog-stat { background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; margin: 8px 0; color: #10b981; font-weight: 600; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -195,7 +216,7 @@ if st.session_state.page == 'landing':
     with c_venda:
         st.markdown("<div class='pain-box'><b>• O Lucro Invisível:</b> Sorte ou Competência?<br><br><b>• Escravo das Planilhas:</b> Gasta horas no Excel.<br><br><b>• Medo do Red:</b> Falta de dados históricos.</div>", unsafe_allow_html=True)
         st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp">🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA</a>', unsafe_allow_html=True)
-        if st.button("JÁ SOU CLIENTE (LOGIN)", use_container_width=True): st.session_state.page = 'login'; st.rerun()
+        if st.button("JÁ SOU CLIENTE (FAZER LOGIN)", use_container_width=True): st.session_state.page = 'login'; st.rerun()
         if st.button("🆓 TESTAR VERSÃO LIMITADA (GRÁTIS)", use_container_width=True): st.session_state.auth = True; st.session_state.is_premium = False; st.session_state.page = 'dashboard'; st.rerun()
     with c_img:
         st.markdown("#### 📊 Performance Geral")
@@ -215,7 +236,7 @@ elif st.session_state.page == 'login':
         with st.container():
             st.markdown("<div style='background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
             u_in = st.text_input("E-mail"); p_in = st.text_input("Senha", type="password")
-            if st.button("CONFIRMAR ACESSO", use_container_width=True):
+            if st.button("CONFIRMAR ACESSO PREMIUM", use_container_width=True):
                 try:
                     users = st.secrets["users"]
                     if u_in in users and users[u_in] == p_in:
@@ -264,11 +285,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                             <span class='team-name'>{j['home']}</span>
                             <span class='team-name'>{j['away']}</span>
                         </div>
-                        <div class='match-odds'>
-                            <div class='odd-box'><small style='color:#94a3b8; display:block'>1</small>{j['o1']}</div>
-                            <div class='odd-box'><small style='color:#94a3b8; display:block'>X</small>{j['ox']}</div>
-                            <div class='odd-box'><small style='color:#94a3b8; display:block'>2</small>{j['o2']}</div>
-                        </div>
+                        <div class='match-odds'><div class='odd-box'>{j['o1']}</div><div class='odd-box'>{j['ox']}</div><div class='odd-box'>{j['o2']}</div></div>
                     </div>
                     """, unsafe_allow_html=True)
 
