@@ -10,7 +10,7 @@ import json
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (EXTERNADA PARA TODAS AS PÁGINAS) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -191,7 +191,7 @@ elif st.session_state.page == 'login':
             st.rerun()
 
 # =========================================================
-# 3. DASHBOARD OFICIAL (ESTRUTURA VISUAL MANTIDA)
+# 3. DASHBOARD OFICIAL
 # =========================================================
 elif st.session_state.page == 'dashboard' and st.session_state.auth:
     
@@ -258,17 +258,14 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             df_clean['Dia_Num'] = df_clean['Dt_Obj'].dt.dayofweek
             df_clean = df_clean.sort_values('Dt_Obj')
 
-            # --- ABA PERFORMANCE GERAL (ESTILO MANTIDO) ---
             if menu == "📈 Performance Geral":
                 st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
                 p_perf = st.date_input("Período de Análise", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
-                
                 if len(p_perf) == 2:
                     df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])].copy()
-                    total_l = df_aba['V_F'].sum()
-                    entradas = len(df_aba); wr_geral = (len(df_aba[df_aba['V_F'] > 0.05]) / entradas * 100) if entradas > 0 else 0
+                    total_l = df_aba['V_F'].sum(); entradas = len(df_aba)
+                    wr_geral = (len(df_aba[df_aba['V_F'] > 0.05]) / entradas * 100) if entradas > 0 else 0
                     odd_m = df_aba[df_aba['V_F'] > 0]['V_F'].apply(lambda x: (x/stake_padrao)+1).mean() if not df_aba[df_aba['V_F'] > 0].empty else 0
-                    
                     curr_streak = 0
                     for v in reversed(df_aba['V_F'].tolist()):
                         if v > 0.05: curr_streak += 1
@@ -276,14 +273,12 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
 
                     bg_lucro = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
                     st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg_lucro};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
-                    
                     c1, c2, c3, c4, c5 = st.columns(5)
                     with c1: st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Acerto</div><div class="metric-value">{wr_geral:.1f}%</div></div>', unsafe_allow_html=True)
                     with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo Stakes</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
                     with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Total Entradas</div><div class="metric-value">{entradas}</div></div>', unsafe_allow_html=True)
                     with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
                     with c5: st.markdown(f'<div class="metric-card" style="background: #1e293b;"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color: #10b981;">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
-
                     st.markdown("<br>", unsafe_allow_html=True)
                     col1, col2 = st.columns(2)
                     with col1:
@@ -292,8 +287,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         res.columns = ['Metodo', 'Lucro', 'Qtd']
                         for _, row in res.sort_values('Lucro', ascending=False).iterrows():
                             wr_m = (len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
-                            cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
-                            st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                     with col2:
                         st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
                         df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
@@ -303,9 +297,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         for _, row in res_odd.iterrows():
                             st.markdown(f'<div class="perf-card"><div><b>Odd: {row["Range"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entradas</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
-            # --- AS OUTRAS ABAS (SÓ PARA PREMIUM) ---
             elif menu == "📅 Diário de Operações" and st.session_state.is_premium:
-                st.markdown("<h2 style='color: white;'>📅 Diário de Operações</h2>", unsafe_allow_html=True)
                 ano_c = st.sidebar.selectbox("Ano", sorted(df_clean['Dt_Obj'].dt.year.unique(), reverse=True))
                 meses_n = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
                 mes_sel = st.sidebar.selectbox("Mês", meses_n, index=datetime.now().month - 1)
@@ -325,7 +317,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.markdown(html + '</div>', unsafe_allow_html=True)
 
             elif menu == "📋 Log de Entradas" and st.session_state.is_premium:
-                p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_log = st.date_input("Período do Log", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
@@ -340,7 +332,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         if novo != row['Metodo']: st.session_state.metodos_salvos[row['ID_Ref']] = novo; st.rerun()
 
             elif menu == "📊 Evolução Patrimonial" and st.session_state.is_premium:
-                p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_evol = st.date_input("Período do Gráfico", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])].copy()
                 df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index(); df_ev['Acum'] = df_ev['V_F'].cumsum()
                 fig = go.Figure(); y, x = df_ev['Acum'].tolist(), df_ev['Data_Apenas'].tolist()
@@ -352,7 +344,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.plotly_chart(fig, use_container_width=True)
 
             elif menu == "⏰ Análise de Janelas" and st.session_state.is_premium:
-                p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
+                p_jan = st.date_input("Período das Janelas", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
                 c1, c2 = st.columns(2)
                 with c1:
@@ -394,22 +386,24 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     for i in range(2, 12): st.markdown(f'<div class="perf-card"><div><b>{i} Reds Seguidos</b></div><div style="text-align:right;"><span class="val-neg">{str_r[i]} vezes</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "⚙️ Gestão de Métodos" and st.session_state.is_premium:
-                st.subheader("⚙️ Métodos")
+                st.subheader("⚙️ Gestão de Métodos")
                 novo_m = st.text_input("Novo método:")
                 if st.button("Adicionar"):
                     if novo_m and novo_m not in st.session_state.lista_metodos: st.session_state.lista_metodos.append(novo_m); st.rerun()
-                st.write("Atuais:", ", ".join(st.session_state.lista_metodos))
-                st.download_button("BAIXAR BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
+                st.write("Métodos atuais:", ", ".join(st.session_state.lista_metodos))
+                st.download_button("BAIXAR MEU BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
 
         except Exception as e: st.error(f"Erro Crítico: {e}")
     else: st.info("Suba seu extrato Betfair na lateral para começar.")
 
-if menu == "📖 Como Extrair":
-    st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
-        st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas.</p></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown('<div class="step-box"><h3>3️⃣ Baixe o CSV</h3><p>Clique no botão <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
-        st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo na lateral esquerda.</p></div>', unsafe_allow_html=True)
+# --- BLOCO FINAL (ERRO NameError CORRIGIDO) ---
+if st.session_state.page == 'dashboard' and st.session_state.auth:
+    if menu == "📖 Como Extrair":
+        st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas no site da Betfair.</p></div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown('<div class="step-box"><h3>3️⃣ Baixe o CSV</h3><p>Clique no botão <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo de upload no menu à esquerda deste site.</p></div>', unsafe_allow_html=True)
