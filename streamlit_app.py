@@ -18,47 +18,42 @@ MSG_WHATSAPP = urllib.parse.quote("Olá! Vi o site e quero liberar meu acesso Pr
 LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 
 API_KEY = "6b546b2e8dmsh056a5639f8a63e0p10cf81jsn73180c89830b"
-API_HOST_SOFA = "sportapi7.p.rapidapi.com"
-API_HOST_ODDS = "odds-feed.p.rapidapi.com"
+API_HOST = "sportapi7.p.rapidapi.com"
 
-# --- FUNÇÃO PARA BUSCAR ODDS PRÉ-LIVE ---
-def obter_odds_prelive():
-    odds_map = {}
+# --- FUNÇÃO PARA BUSCAR ODDS DE UM EVENTO ESPECÍFICO ---
+def buscar_odds_evento(event_id):
     try:
-        url = "https://odds-feed.p.rapidapi.com/api/v1/markets/feed"
-        params = {"placing": "PRELIVE", "market_name": "1X2", "bet_type": "BACK"}
-        headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST_ODDS}
-        response = requests.get(url, headers=headers, params=params)
+        url = f"https://{API_HOST}/api/v1/event/{event_id}/odds/1/all"
+        headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST}
+        response = requests.get(url, headers=headers)
         data = response.json()
         
-        for item in data.get('data', []):
-            home = item.get('home_team', '')
-            away = item.get('away_team', '')
-            match_key = f"{home} vs {away}".lower()
-            
-            val_1, val_x, val_2 = "---", "---", "---"
-            for o in item.get('odds', []):
-                name = o.get('name', '').lower()
-                if '1' in name or 'home' in name: val_1 = o.get('value')
-                if 'x' in name or 'draw' in name: val_x = o.get('value')
-                if '2' in name or 'away' in name: val_2 = o.get('value')
-            
-            odds_map[match_key] = {"1": val_1, "X": val_x, "2": val_2}
+        # Procura pelo mercado '1X2' ou 'Full Time'
+        for choice in data.get('markets', []):
+            if choice.get('marketName') == 'Full time' or choice.get('marketId') == 1:
+                odds = choice.get('choices', [])
+                o1 = "---"
+                ox = "---"
+                o2 = "---"
+                for o in odds:
+                    if o.get('name') == '1': o1 = o.get('fractionalValue', o.get('value'))
+                    if o.get('name') == 'X': ox = o.get('fractionalValue', o.get('value'))
+                    if o.get('name') == '2': o2 = o.get('fractionalValue', o.get('value'))
+                return o1, ox, o2
     except:
         pass
-    return odds_map
+    return "---", "---", "---"
 
-# --- FUNÇÃO AUTOMÁTICA: BUSCAR JOGOS ORGANIZADOS ---
+# --- FUNÇÃO AUTOMÁTICA: BUSCAR JOGOS ORGANIZADOS POR PAÍS E LIGA ---
 @st.cache_data(ttl=1800)
 def buscar_jogos_realtime():
     agrupados = {}
-    odds_data = obter_odds_prelive()
     try:
         agora_br = datetime.utcnow() - timedelta(hours=3)
         hoje_br_str = agora_br.strftime('%Y-%m-%d')
         
-        url = f"https://{API_HOST_SOFA}/api/v1/sport/football/scheduled-events/{hoje_br_str}"
-        headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST_SOFA}
+        url = f"https://{API_HOST}/api/v1/sport/football/scheduled-events/{hoje_br_str}"
+        headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST}
         response = requests.get(url, headers=headers)
         data = response.json()
         
@@ -70,19 +65,19 @@ def buscar_jogos_realtime():
                 if dt_br.date() == agora_br.date():
                     pais = event.get('tournament', {}).get('category', {}).get('name', 'Internacional').upper()
                     liga = event.get('tournament', {}).get('name', 'Geral').upper()
-                    home_t = event.get('homeTeam', {}).get('name', '')
-                    away_t = event.get('awayTeam', {}).get('name', '')
+                    event_id = event.get('id')
                     
-                    # Cruzamento de Odds
-                    key = f"{home_t} vs {away_t}".lower()
-                    m_odds = odds_data.get(key, {"1": "---", "X": "---", "2": "---"})
+                    # Busca as Odds reais via API
+                    o1, ox, o2 = buscar_odds_evento(event_id)
                     
                     jogo_info = {
                         "hora": dt_br.strftime('%H:%M'),
-                        "home": home_t, "away": away_t,
-                        "o1": m_odds["1"], "ox": m_odds["X"], "o2": m_odds["2"],
+                        "home": event.get('homeTeam', {}).get('name'),
+                        "away": event.get('awayTeam', {}).get('name'),
+                        "o1": o1, "ox": ox, "o2": o2,
                         "ts": dt_br.timestamp()
                     }
+                    
                     if pais not in agrupados: agrupados[pais] = {}
                     if liga not in agrupados[pais]: agrupados[pais][liga] = []
                     agrupados[pais][liga].append(jogo_info)
@@ -103,7 +98,7 @@ prognosticos_dia = [
     }
 ]
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE CONFORME SOLICITADO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -116,48 +111,62 @@ st.markdown("""
     .hero-subtitle { color: #94a3b8; font-size: 1.3rem; text-align: center; margin-bottom: 40px; }
     .pain-box { background: rgba(244, 63, 94, 0.05); border-left: 5px solid #f43f5e; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
     .solution-box { background: rgba(16, 185, 129, 0.05); border-left: 5px solid #10b981; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .btn-wpp { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white !important; text-decoration: none !important; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: center; border: none; width: 100%; }
 
-    .btn-wpp {
-        display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white !important; text-decoration: none !important;
-        font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-        padding: 15px; border-radius: 12px; margin-bottom: 10px;
-        text-align: center; transition: all 0.3s ease; border: none; width: 100%;
+    /* NAVEGAÇÃO SIDEBAR */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
+        background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 12px 20px !important; border-radius: 12px !important;
+        margin-bottom: 8px !important; width: 100% !important;
+        display: block !important; transition: all 0.3s ease; cursor: pointer;
     }
-    .btn-wpp:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
-
-    .match-card {
-        background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 10px;
-        border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
+        background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important;
+        border: none !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
-    .match-time { color: #94a3b8; font-size: 0.85rem; font-weight: 600; width: 80px; text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
-    .match-teams { flex-grow: 1; padding: 0 25px; }
-    .team-row { display: flex; align-items: center; margin: 4px 0; }
-    .team-name { color: white; font-weight: 600; font-size: 1.05rem; }
-    .match-odds { display: flex; gap: 10px; }
-    .odd-box { background: #0f172a; padding: 10px 15px; border-radius: 8px; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center; min-width: 60px; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] p {
+        color: white !important; font-weight: 700 !important; font-size: 0.9rem !important;
+        margin: 0 !important; text-align: center;
+    }
 
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label { background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); padding: 12px 20px !important; border-radius: 12px !important; margin-bottom: 8px !important; width: 100% !important; display: block !important; }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] { background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important; }
-
+    /* CARDS DE MÉTRICAS */
     .metric-card { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); height: 110px; width: 100%; margin-bottom: 15px; }
     .metric-card-grande { height: 140px; margin-bottom: 20px; }
+    .metric-title { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1.5px; margin-bottom: 8px; }
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
+
+    /* CALENDÁRIO (REESTABELECIDO) */
+    .monthly-profit-card { padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+    .day-name { text-align: center; color: #475569; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; padding-bottom: 5px; }
+    .day-card { background: #0f172a; border-radius: 10px; padding: 10px; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; border: 1px solid rgba(255, 255, 255, 0.03); overflow: hidden; box-sizing: border-box; }
+    .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
+    .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
+    .day-number { font-size: 1.1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
+
+    /* PERFORMANCE E SEQUENCIAS */
     .perf-card { background: #0f172a; border-radius: 12px; padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 10px; height: 90px; width: 100%; box-sizing: border-box; }
+    .val-pos { color: #10b981; font-weight: 800; }
+    .val-neg { color: #f43f5e; font-weight: 800; }
     .section-title { color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; padding-left: 5px; border-left: 4px solid #10b981; line-height: 1; }
     .step-box { background: #1e293b; padding: 20px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #10b981; }
 
+    /* JOGOS DO DIA */
     .country-header { background: #0f172a; color: #10b981; padding: 8px 15px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; text-transform: uppercase; margin: 30px 0 5px 0; border-left: 5px solid #10b981; letter-spacing: 1.5px;}
     .league-name-sub { color: #64748b; font-size: 0.7rem; font-weight: 800; margin-bottom: 10px; margin-left: 5px; text-transform: uppercase;}
-    
-    .prog-card { background: #0f172a; border-radius: 15px; padding: 25px; margin-bottom: 20px; border-left: 5px solid #10b981; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-    .prog-stat { background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; margin: 8px 0; color: #10b981; font-weight: 600; }
+    .match-card { background: #1e293b; border-radius: 12px; padding: 12px 18px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: space-between; }
+    .match-time { color: #ffffff; font-size: 0.9rem; font-weight: 800; width: 55px; text-align: center; }
+    .match-teams { flex-grow: 1; padding: 0 20px; border-left: 1px solid rgba(255,255,255,0.1); }
+    .team-name { color: white; font-weight: 600; font-size: 1.05rem; display: block; }
+    .match-odds { display: flex; gap: 10px; }
+    .odd-box { background: #0f172a; padding: 10px 15px; border-radius: 8px; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center; min-width: 60px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES AUXILIARES ---
+# --- FUNÇÕES ---
 def format_br(val):
     prefix = "-" if val < 0 else ""
     return f"{prefix}R$ {abs(val):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -167,7 +176,7 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS DE SESSÃO ---
+# --- ESTADOS ---
 if 'page' not in st.session_state: st.session_state.page = 'landing'
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'is_premium' not in st.session_state: st.session_state.is_premium = False
@@ -191,7 +200,10 @@ if st.session_state.page == 'landing':
     with c_img:
         st.markdown("#### 📊 Performance Geral")
         try: st.image("capa_venda.png", use_container_width=True)
-        except: st.info("🖼️ [Visual do Dashboard Principal]")
+        except: st.info("🖼️ [Dashboard Principal]")
+        st.markdown("#### 📅 Calendário de Consistência")
+        try: st.image("diario_demo.png", use_container_width=True)
+        except: st.info("🖼️ [Visual do Calendário]")
 
 # =========================================================
 # 2. PÁGINA DE LOGIN
@@ -224,6 +236,11 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
         if st.button("Sair / Trocar Conta"): st.session_state.auth = False; st.session_state.page = 'landing'; st.rerun()
         st.markdown("---")
         uploaded_file = st.file_uploader("1. Carregar Extrato Betfair (.csv)", type=["csv"])
+        if st.session_state.is_premium:
+            uploaded_backup = st.file_uploader("2. Opcional: Carregar Backup (.json)", type=["json"])
+            if uploaded_backup:
+                st.session_state.metodos_salvos = json.load(uploaded_backup)
+                st.success("Backup OK!")
         stake_padrao = st.number_input("Sua Stake Padrão (R$)", value=600.0)
         st.markdown("---")
         opcoes_menu = ["📈 Performance Geral", "🏟️ Jogos de Hoje", "🧠 Prognósticos"]
@@ -231,10 +248,9 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             opcoes_menu += ["📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "🔥 Sequências", "⚙️ Gestão de Métodos"]
         opcoes_menu += ["📖 Como Extrair"]
         menu = st.radio("Menu", opcoes_menu, label_visibility="collapsed")
-        if not st.session_state.is_premium: st.markdown("---"); st.info("🔓 Assine o Pro para liberar todas as abas.")
 
     if menu == "🏟️ Jogos de Hoje":
-        st.markdown("<h2 style='color: white;'>🏟️ Principais Jogos do Dia</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white;'>🏟️ Agenda de Hoje (Brasília)</h2>", unsafe_allow_html=True)
         agrupados = buscar_jogos_realtime()
         for pais, ligas in agrupados.items():
             st.markdown(f"<div class='country-header'>{pais}</div>", unsafe_allow_html=True)
@@ -245,8 +261,8 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     <div class='match-card'>
                         <div class='match-time'>{j['hora']}</div>
                         <div class='match-teams'>
-                            <div class='team-row'><span class='team-name'>{j['home']}</span></div>
-                            <div class='team-row'><span class='team-name'>{j['away']}</span></div>
+                            <span class='team-name'>{j['home']}</span>
+                            <span class='team-name'>{j['away']}</span>
                         </div>
                         <div class='match-odds'>
                             <div class='odd-box'><small style='color:#94a3b8; display:block'>1</small>{j['o1']}</div>
@@ -264,7 +280,6 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
     if uploaded_file is not None:
         try:
             df_raw = pd.read_csv(uploaded_file)
-            # Lógica Dashboard (Padrão Original)
             map_cols = {'Data':['Data','Date','data'],'Desc':['Descrição','Description','Evento','Market'],'Val':['Valor (R$)','Amount','Profit/Loss','Valor'],'Ent':['Entrada de Dinheiro (R$)', 'In'],'Sai':['Saída de Dinheiro (R$)', 'Out']}
             def get_c(key):
                 for c in df_raw.columns:
