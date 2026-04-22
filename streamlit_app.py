@@ -20,38 +20,25 @@ LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 API_KEY = "6b546b2e8dmsh056a5639f8a63e0p10cf81jsn73180c89830b"
 API_HOST = "sportapi7.p.rapidapi.com"
 
-# --- FUNÇÃO PARA CONVERTER ODD FRACIONÁRIA EM DECIMAL ---
-def converter_odd_decimal(valor):
-    if not valor or valor == "---":
-        return "---"
-    try:
-        valor_str = str(valor).strip()
-        if "/" in valor_str:
-            num, den = valor_str.split("/")
-            decimal = (float(num) / float(den)) + 1
-            return f"{decimal:.2f}".replace(".", ",")
-        return valor_str.replace(".", ",")
-    except:
-        return valor
-
 # --- FUNÇÃO PARA BUSCAR ODDS DE UM EVENTO ESPECÍFICO ---
 def buscar_odds_evento(event_id):
     try:
         url = f"https://{API_HOST}/api/v1/event/{event_id}/odds/1/all"
         headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST}
-        response = requests.get(url, headers=headers, timeout=5) # Timeout para não travar
+        response = requests.get(url, headers=headers)
         data = response.json()
         
+        # Procura pelo mercado '1X2' ou 'Full Time'
         for choice in data.get('markets', []):
             if choice.get('marketName') == 'Full time' or choice.get('marketId') == 1:
                 odds = choice.get('choices', [])
-                o1 = ox = o2 = "---"
+                o1 = "---"
+                ox = "---"
+                o2 = "---"
                 for o in odds:
-                    valor_original = o.get('fractionalValue', o.get('value'))
-                    valor_convertido = converter_odd_decimal(valor_original)
-                    if o.get('name') == '1': o1 = valor_convertido
-                    if o.get('name') == 'X': ox = valor_convertido
-                    if o.get('name') == '2': o2 = valor_convertido
+                    if o.get('name') == '1': o1 = o.get('fractionalValue', o.get('value'))
+                    if o.get('name') == 'X': ox = o.get('fractionalValue', o.get('value'))
+                    if o.get('name') == '2': o2 = o.get('fractionalValue', o.get('value'))
                 return o1, ox, o2
     except:
         pass
@@ -64,14 +51,14 @@ def buscar_jogos_realtime():
     try:
         agora_br = datetime.utcnow() - timedelta(hours=3)
         hoje_br_str = agora_br.strftime('%Y-%m-%d')
+        
         url = f"https://{API_HOST}/api/v1/sport/football/scheduled-events/{hoje_br_str}"
         headers = {"x-rapidapi-key": API_KEY, "x-rapidapi-host": API_HOST}
         response = requests.get(url, headers=headers)
         data = response.json()
         
         if 'events' in data:
-            # Pegamos os primeiros 20 jogos para não sobrecarregar a página
-            for event in data.get('events', [])[:20]:
+            for event in data.get('events', []):
                 dt_utc = datetime.fromtimestamp(event.get('startTimestamp'))
                 dt_br = dt_utc - timedelta(hours=3)
                 
@@ -99,17 +86,18 @@ def buscar_jogos_realtime():
             for l in agrupados[p]:
                 agrupados[p][l] = sorted(agrupados[p][l], key=lambda x: x['ts'])
     except:
-        agrupados = {"DESTAQUES": {"SISTEMA": [{"hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "o1": "2,10", "ox": "3,50", "o2": "3,40"}]}}
+        agrupados = {"DESTAQUES": {"SISTEMA": [{"hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "o1": "2.10", "ox": "3.50", "o2": "3.40"}]}}
     return agrupados
 
 prognosticos_dia = [
     {
         "jogo": "Real Madrid x Barcelona",
-        "analise": "O Real Madrid mantém uma pressão forte no Bernabéu. O Barcelona sofre em transição defensiva.",
-        "tendencia": "Over 0.5 HT ou Back Madrid.",
-        "edge": "Estatística aponta 74% de Ambas Marcam."
+        "analise": "O Real Madrid jogando no Bernabéu mantém uma pressão inicial fortíssima, com 80% dos gols marcados no primeiro tempo. O Barcelona tem dificuldades em transição defensiva contra times que utilizam pontas rápidos.",
+        "tendencia": "Cenário para Back Arsenal HT ou Over 0.5 Gols HT caso o jogo comece muito aberto.",
+        "edge": "Estatística indica valor na vitória do Arsenal combinada com +1.5 gols no jogo."
     }
 ]
+
 # --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE CONFORME SOLICITADO) ---
 st.markdown("""
     <style>
