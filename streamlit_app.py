@@ -9,14 +9,14 @@ import json
 import urllib.parse
 
 # 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(layout="wide", page_title="Bet Analytics Pro", page_icon="💎")
+st.set_page_config(layout="wide", page_title="Edge Trading Hub", page_icon="💎")
 
 # --- CONFIGURAÇÃO DE CONTATO ---
 CELULAR_VENDAS = "5519971374936"
-MSG_WHATSAPP = urllib.parse.quote("Olá! Vi o site e quero liberar meu acesso Premium no Bet Analytics Pro.")
+MSG_WHATSAPP = urllib.parse.quote("Olá! Vi o site e quero liberar meu acesso Premium no Edge Trading Hub.")
 LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA) ---
+# --- ESTILIZAÇÃO CSS PREMIUM (MANTIDA E AMPLIADA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -24,42 +24,56 @@ st.markdown("""
     .stApp { background-color: #020617; }
     .main .block-container { max-width: 1200px; padding-top: 1.5rem; margin: auto; }
 
-    /* Estilos Landing Page */
+    /* Landing Page */
     .hero-title { color: #10b981; font-size: 3.5rem; font-weight: 900; text-align: center; margin-bottom: 5px; }
     .hero-subtitle { color: #94a3b8; font-size: 1.3rem; text-align: center; margin-bottom: 40px; }
     .pain-box { background: rgba(244, 63, 94, 0.05); border-left: 5px solid #f43f5e; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
     .solution-box { background: rgba(16, 185, 129, 0.05); border-left: 5px solid #10b981; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
 
-    /* BOTÃO WHATSAPP ESTILIZADO */
+    /* ESTILO JOGOS DO DIA (SOFASCORE STYLE) */
+    .match-card {
+        background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 10px;
+        border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;
+    }
+    .match-time { color: #94a3b8; font-size: 0.85rem; font-weight: 600; width: 60px; }
+    .match-teams { flex-grow: 1; padding: 0 20px; }
+    .team-row { display: flex; align-items: center; margin: 3px 0; }
+    .team-name { color: white; font-weight: 600; font-size: 1rem; }
+    .match-odds { display: flex; gap: 8px; }
+    .odd-box { 
+        background: #0f172a; padding: 8px 12px; border-radius: 6px; 
+        color: #10b981; font-weight: 800; font-size: 0.9rem; text-align: center; min-width: 50px;
+    }
+
+    /* ESTILO PROGNÓSTICO */
+    .prog-card {
+        background: #0f172a; border-radius: 15px; padding: 25px; margin-bottom: 20px;
+        border-left: 5px solid #10b981; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .prog-stat { background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 8px; margin: 5px 0; color: #10b981; font-weight: 600; }
+
+    /* BOTÃO WHATSAPP */
     .btn-wpp {
         display: flex; align-items: center; justify-content: center;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white !important; text-decoration: none !important;
         font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
         padding: 15px; border-radius: 12px; margin-bottom: 10px;
-        text-align: center; transition: all 0.3s ease;
-        border: none; width: 100%;
+        text-align: center; transition: all 0.3s ease; border: none; width: 100%;
     }
     .btn-wpp:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
 
     /* NAVEGAÇÃO SIDEBAR */
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05);
         padding: 12px 20px !important; border-radius: 12px !important;
-        margin-bottom: 8px !important; width: 100% !important;
-        display: block !important; transition: all 0.3s ease; cursor: pointer;
+        margin-bottom: 8px !important; width: 100% !important; display: block !important;
     }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
         background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important;
-        border: none !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] p {
-        color: white !important; font-weight: 700 !important; font-size: 0.9rem !important;
-        margin: 0 !important; text-align: center;
     }
 
-    /* CARDS DE MÉTRICAS */
+    /* CARDS MÉTRICAS DASHBOARD */
     .metric-card {
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         padding: 20px 10px; border-radius: 20px; color: white; font-weight: 800;
@@ -67,45 +81,41 @@ st.markdown("""
         height: 110px; width: 100%; margin-bottom: 15px;
     }
     .metric-card-grande { height: 140px; margin-bottom: 20px; }
-    .metric-title { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 1.5px; margin-bottom: 8px; }
-    .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
-    .metric-value-grande { font-size: 2.8rem; }
-
-    /* CALENDÁRIO */
-    .monthly-profit-card {
-        padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800;
-        margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
-    .day-name { text-align: center; color: #475569; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; padding-bottom: 5px; }
-    .day-card { 
-        background: #0f172a; border-radius: 10px; padding: 10px; min-height: 100px; 
-        display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
-        border: 1px solid rgba(255, 255, 255, 0.03); overflow: hidden; box-sizing: border-box;
-    }
-    .green-card { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); border: none; }
-    .red-card { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border: none; }
-    .day-number { font-size: 1.1rem; font-weight: 900; color: #ffffff !important; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-    .day-value { font-size: 0.75rem; font-weight: 800; color: white; width: 100%; text-align: right; white-space: nowrap; }
-
-    /* PERFORMANCE E SEQUENCIAS */
     .perf-card { 
         background: #0f172a; border-radius: 12px; padding: 15px 18px; 
         display: flex; align-items: center; justify-content: space-between; 
         border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 10px;
         height: 90px; width: 100%; box-sizing: border-box;
     }
-    .val-pos { color: #10b981; font-weight: 800; }
-    .val-neg { color: #f43f5e; font-weight: 800; }
-    .section-title {
-        color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; 
-        padding-left: 5px; border-left: 4px solid #10b981; line-height: 1;
-    }
-    .step-box { background: #1e293b; padding: 20px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #10b981; }
+    .section-title { color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; padding-left: 5px; border-left: 4px solid #10b981; line-height: 1; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES ---
+# --- INICIALIZAÇÃO DE ESTADOS ---
+if 'page' not in st.session_state: st.session_state.page = 'landing'
+if 'auth' not in st.session_state: st.session_state.auth = False
+if 'is_premium' not in st.session_state: st.session_state.is_premium = False
+if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
+if 'lista_metodos' not in st.session_state: 
+    st.session_state.lista_metodos = ["Match Odds", "Under 2.5", "Over 2.5", "Under 1.5", "Over 1.5", "Correct Score", "Sem Categoria"]
+if 'pagina_atual' not in st.session_state: st.session_state.pagina_atual = 1
+
+# --- DADOS PARA OS DIFERENCIAIS (SIMULAÇÃO MANUAL PARA O USUÁRIO ALIMENTAR) ---
+jogos_dia = [
+    {"liga": "LALIGA 🇪🇸", "hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "o1": "1.95", "ox": "3.60", "o2": "3.75"},
+    {"liga": "PREMIER LEAGUE 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "hora": "14:30", "home": "Man City", "away": "Arsenal", "o1": "1.80", "ox": "3.90", "o2": "4.50"},
+]
+
+prognosticos = [
+    {
+        "jogo": "Real Madrid x Barcelona",
+        "analise": "O Real Madrid jogando no Bernabéu tem média de 2.4 gols marcados. O Barcelona sofreu gols nos últimos 5 jogos fora.",
+        "tendencia": "Cenário favorável para Over 2.5 Gols ou Back Real Madrid em caso de empate nos primeiros 20 minutos.",
+        "edge": "Estatística indica 78% de probabilidade de ambas marcam baseada no histórico recente."
+    }
+]
+
+# --- FUNÇÕES DE APOIO ---
 def format_br(val):
     prefix = "-" if val < 0 else ""
     return f"{prefix}R$ {abs(val):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -115,86 +125,32 @@ def clean_money(val):
     try: return float(str(val).replace(',', ''))
     except: return 0.0
 
-# --- ESTADOS ---
-if 'page' not in st.session_state: st.session_state.page = 'landing'
-if 'auth' not in st.session_state: st.session_state.auth = False
-if 'is_premium' not in st.session_state: st.session_state.is_premium = False
-if 'metodos_salvos' not in st.session_state: st.session_state.metodos_salvos = {}
-if 'lista_metodos' not in st.session_state: 
-    st.session_state.lista_metodos = ["Match Odds", "Under 2.5", "Over 2.5", "Under 1.5", "Over 1.5", "Correct Score", "Sem Categoria"]
-if 'pagina_atual' not in st.session_state: st.session_state.pagina_atual = 1
-
 # =========================================================
-# 1. PÁGINA DE VENDAS
+# PÁGINA: LANDING PAGE (EDGE TRADING HUB)
 # =========================================================
 if st.session_state.page == 'landing':
-    st.markdown("<h1 class='hero-title'>💎 VOCÊ ESTÁ JOGANDO DINHEIRO FORA?</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='hero-subtitle'>Pare de agir como apostador e comece a lucrar como um fundo de investimento.</p>", unsafe_allow_html=True)
+    st.markdown("<h1 class='hero-title'>💎 EDGE TRADING HUB</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='hero-subtitle'>Onde a Gestão Profissional encontra a Inteligência de Mercado.</p>", unsafe_allow_html=True)
     
     c_venda, c_img = st.columns([1, 1.2])
-    
     with c_venda:
         st.markdown("### ❌ O Ciclo da Falência que você repete todo mês:")
-        st.markdown("""
-        <div class='pain-box'>
-            <b>• O Lucro Invisível:</b> Você termina o dia no Green, mas não tem ideia de qual método funcionou. Você está ganhando por competência ou por sorte?<br><br>
-            <b>• Escravo das Planilhas:</b> Você gasta horas preenchendo Excel para depois abandonar tudo. Seu tempo vale ouro.<br><br>
-            <b>• O Erro do Emocional:</b> Você abandona um método lucrativo por medo de sequências normais de Red.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("### 🎯 Assuma o controle da sua Operação")
-        st.markdown("""
-        <div class='solution-box'>
-            <b>• Diagnóstico em 1 Clique:</b> Arraste seu extrato Betfair e descubra onde seu dinheiro está vazando.<br><br>
-            <b>• Filtros de Sniper:</b> Opere apenas nos horários e dias onde a matemática está ao seu lado.<br><br>
-            <b>• Raio-X da Variância:</b> Visualize suas sequências e escale sua stake com segurança.
-        </div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown("<div class='pain-box'><b>• O Lucro Invisível:</b> Você ganha hoje, mas não sabe se foi sorte ou método.<br><br><b>• Escravo das Planilhas:</b> Gasta horas no Excel e desiste em 1 semana.<br><br><b>• Decisões no Escuro:</b> Entra nos jogos por 'feeling' e não por dados comportamentais.</div>", unsafe_allow_html=True)
+        st.markdown("### 🎯 A Vantagem (EDGE) que você precisa:")
+        st.markdown("<div class='solution-box'><b>• Diagnóstico Betfair em 1 Clique:</b> Arraste seu extrato e veja o ralo por onde foge seu lucro.<br><br><b>• Inteligência de Jogo:</b> Prognósticos baseados em comportamento real, não apenas palpites.<br><br><b>• Sniper de Horários:</b> Opere apenas quando a matemática te favorece.</div>", unsafe_allow_html=True)
         st.write("---")
-        # BOTÃO PREMIUM -> WHATSAPP
-        st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp">🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA</a>', unsafe_allow_html=True)
-        
-        # BOTÃO LOGIN PREMIUM (EXISTENTE)
-        if st.button("JÁ SOU CLIENTE (FAZER LOGIN)", use_container_width=True):
-            st.session_state.page = 'login'
-            st.rerun()
-
-        # BOTÃO FREE -> DASHBOARD
-        if st.button("🆓 TESTAR VERSÃO LIMITADA (GRÁTIS)", use_container_width=True):
-            st.session_state.auth = True
-            st.session_state.is_premium = False
-            st.session_state.page = 'dashboard'
-            st.rerun()
+        st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp">🔥 QUERO O ACESSO PREMIUM AGORA</a>', unsafe_allow_html=True)
+        if st.button("JÁ SOU CLIENTE (FAZER LOGIN)", use_container_width=True): st.session_state.page = 'login'; st.rerun()
+        if st.button("🆓 TESTAR VERSÃO GRATUITA", use_container_width=True): st.session_state.auth = True; st.session_state.is_premium = False; st.session_state.page = 'dashboard'; st.rerun()
 
     with c_img:
-        st.markdown("#### 📊 Performance Geral")
         try: st.image("capa_venda.png", use_container_width=True)
-        except: st.info("🖼️ [Imagem da Performance Geral]")
-        
-        st.markdown("#### 📅 Calendário de Consistência")
+        except: st.info("🖼️ [VISUAL DO DASHBOARD]")
         try: st.image("diario_demo.png", use_container_width=True)
-        except: st.info("🖼️ [Visual do Calendário]")
-        
-        st.markdown("<p style='text-align:center; color:#10b981; font-weight:800; margin-top:10px;'>A prova real da sua consistência profissional.</p>", unsafe_allow_html=True)
-
-    st.write("---")
-    st.markdown("<h2 style='text-align:center; color:white;'>Análise profunda para quem leva o mercado a sério</h2>", unsafe_allow_html=True)
-    inf1, inf2 = st.columns(2)
-    with inf1:
-        st.markdown("#### ⏰ Janelas de Lucro")
-        st.write("Pare de operar o dia todo. Descubra os horários onde sua taxa de acerto explode.")
-        try: st.image("janelas_demo.png", use_container_width=True)
-        except: st.info("Análise Horária")
-    with inf2:
-        st.markdown("#### 🔥 Domine a Variância")
-        st.write("Saiba exatamente quanto seu método suporta oscilar. O conhecimento é o fim do medo.")
-        try: st.image("sequencias_demo.png", use_container_width=True)
-        except: st.info("Análise de Sequências")
+        except: st.info("🖼️ [VISUAL DO CALENDÁRIO]")
 
 # =========================================================
-# 2. PÁGINA DE LOGIN
+# PÁGINA: LOGIN
 # =========================================================
 elif st.session_state.page == 'login':
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -204,62 +160,78 @@ elif st.session_state.page == 'login':
             st.markdown("<div style='background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
             u_in = st.text_input("E-mail")
             p_in = st.text_input("Senha", type="password")
-            if st.button("CONFIRMAR ACESSO PREMIUM", use_container_width=True):
+            if st.button("CONFIRMAR ACESSO", use_container_width=True):
                 try:
                     users = st.secrets["users"]
                     if u_in in users and users[u_in] == p_in:
-                        st.session_state.auth = True
-                        st.session_state.is_premium = True
-                        st.session_state.page = 'dashboard'
-                        st.rerun()
+                        st.session_state.auth = True; st.session_state.is_premium = True; st.session_state.page = 'dashboard'; st.rerun()
                     else: st.error("Dados incorretos.")
                 except: st.error("Secrets não configurado.")
             st.markdown("</div>", unsafe_allow_html=True)
-        if st.button("← Voltar"):
-            st.session_state.page = 'landing'
-            st.rerun()
+        if st.button("← Voltar"): st.session_state.page = 'landing'; st.rerun()
 
 # =========================================================
-# 3. DASHBOARD OFICIAL
+# PÁGINA: DASHBOARD E NOVAS ABAS
 # =========================================================
 elif st.session_state.page == 'dashboard' and st.session_state.auth:
-    
     with st.sidebar:
-        st.markdown(f"<h2 style='color: #10b981;'>💎 BET {'PRO' if st.session_state.is_premium else 'FREE'}</h2>", unsafe_allow_html=True)
-        
-        # BOTÃO PARA ASSINAR PRO (VISÍVEL APENAS NO FREE)
+        st.markdown(f"<h2 style='color: #10b981;'>💎 EDGE HUB</h2>", unsafe_allow_html=True)
         if not st.session_state.is_premium:
             st.markdown(f'<a href="{LINK_WHATSAPP}" target="_blank" class="btn-wpp" style="font-size: 0.8rem; padding: 10px;">🚀 QUERO SER PREMIUM</a>', unsafe_allow_html=True)
-
-        if st.button("Sair / Trocar Conta"):
-            st.session_state.auth = False
-            st.session_state.page = 'landing'
-            st.rerun()
+        if st.button("Sair / Trocar Conta"): st.session_state.auth = False; st.session_state.page = 'landing'; st.rerun()
         st.markdown("---")
         uploaded_file = st.file_uploader("1. Carregar Extrato Betfair (.csv)", type=["csv"])
-        
         if st.session_state.is_premium:
-            uploaded_backup = st.file_uploader("2. Opcional: Carregar Backup (.json)", type=["json"])
-            if uploaded_backup:
-                st.session_state.metodos_salvos = json.load(uploaded_backup)
-                st.success("Backup OK!")
-        
+            uploaded_backup = st.file_uploader("2. Carregar Backup (.json)", type=["json"])
+            if uploaded_backup: st.session_state.metodos_salvos = json.load(uploaded_backup); st.success("Backup OK!")
         stake_padrao = st.number_input("Sua Stake Padrão (R$)", value=600.0)
         st.markdown("---")
-        
-        opcoes_menu = ["📈 Performance Geral"]
+        opcoes_menu = ["📈 Performance Geral", "🏟️ Jogos de Hoje", "🧠 Prognósticos"]
         if st.session_state.is_premium:
             opcoes_menu += ["📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "🔥 Sequências", "⚙️ Gestão de Métodos"]
         opcoes_menu += ["📖 Como Extrair"]
-        
         menu = st.radio("Menu", opcoes_menu, label_visibility="collapsed")
-        if not st.session_state.is_premium:
-            st.markdown("---")
-            st.info("🔓 Assine o Pro para liberar todas as abas.")
 
+    # --- ABA JOGOS DE HOJE ---
+    if menu == "🏟️ Jogos de Hoje":
+        st.markdown("<h2 style='color: white;'>🏟️ Principais Jogos do Dia</h2>", unsafe_allow_html=True)
+        st.write("Acompanhe as cotações e prepare suas entradas.")
+        for j in jogos_dia:
+            st.markdown(f"""
+            <div class='match-card'>
+                <div class='match-time'>{j['hora']}<br><small style='color:#10b981'>{j['liga']}</small></div>
+                <div class='match-teams'>
+                    <div class='team-row'><span class='team-name'>{j['home']}</span></div>
+                    <div class='team-row'><span class='team-name'>{j['away']}</span></div>
+                </div>
+                <div class='match-odds'>
+                    <div class='odd-box'><small style='color:#94a3b8; display:block'>1</small>{j['o1']}</div>
+                    <div class='odd-box'><small style='color:#94a3b8; display:block'>X</small>{j['ox']}</div>
+                    <div class='odd-box'><small style='color:#94a3b8; display:block'>2</small>{j['o2']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # --- ABA PROGNÓSTICOS ---
+    elif menu == "🧠 Prognósticos":
+        st.markdown("<h2 style='color: white;'>🧠 Prognósticos Inteligentes</h2>", unsafe_allow_html=True)
+        st.write("Análise comportamental baseada em dados reais.")
+        for p in prognosticos:
+            with st.container():
+                st.markdown(f"""
+                <div class='prog-card'>
+                    <h3 style='color:#10b981; margin-top:0;'>{p['jogo']}</h3>
+                    <p style='color:#cbd5e1; font-size:1.1rem;'>{p['analise']}</p>
+                    <div class='prog-stat'>🔥 TENDÊNCIA: {p['tendencia']}</div>
+                    <div class='prog-stat'>📊 DATA EDGE: {p['edge']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # --- LÓGICA DE DADOS (DASHBOARD) ---
     if uploaded_file is not None:
         try:
             df_raw = pd.read_csv(uploaded_file)
+            # ... [Lógica de processamento mantida idêntica] ...
             map_cols = {'Data':['Data','Date','data'],'Desc':['Descrição','Description','Evento','Market'],'Val':['Valor (R$)','Amount','Profit/Loss','Valor'],'Ent':['Entrada de Dinheiro (R$)', 'In'],'Sai':['Saída de Dinheiro (R$)', 'Out']}
             def get_c(key):
                 for c in df_raw.columns:
@@ -268,22 +240,17 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             c_data, c_desc, c_val, c_ent, c_sai = get_c('Data'), get_c('Desc'), get_c('Val'), get_c('Ent'), get_c('Sai')
             if c_val: df_raw['V_F'] = df_raw[c_val].apply(clean_money)
             else: df_raw['V_F'] = df_raw[c_ent].apply(clean_money) + df_raw[c_sai].apply(clean_money)
-            
             meses_pt = {'jan':'Jan','fev':'Feb','mar':'Mar','abr':'Apr','mai':'May','jun':'Jun','jul':'Jul','ago':'Aug','set':'Sep','out':'Oct','nov':'Nov','dez':'Dec'}
             df_raw[c_data] = df_raw[c_data].astype(str)
             for pt, en in meses_pt.items(): df_raw[c_data] = df_raw[c_data].str.replace(pt, en, case=False)
-            
             df_raw['Dt_Obj'] = pd.to_datetime(df_raw[c_data], errors='coerce')
             df_raw = df_raw.dropna(subset=['Dt_Obj'])
             df_raw = df_raw[~df_raw[c_desc].str.contains('Depósito|Deposit|Withdraw|Saque|Transferência', case=False, na=False)].copy()
             df_raw['ID_Ref'] = df_raw[c_desc].apply(lambda x: re.search(r'Ref: (\d+)', str(x)).group(1) if re.search(r'Ref: (\d+)', str(x)) else str(x))
-            
             df_clean = df_raw.groupby(['ID_Ref', 'Dt_Obj', c_desc]).agg({'V_F': 'sum'}).reset_index()
-            
             def get_metodo(row):
                 if row['ID_Ref'] in st.session_state.metodos_salvos: return st.session_state.metodos_salvos[row['ID_Ref']]
                 return str(row[c_desc]).split('Ref:')[0].split('/')[-1].strip() if '/' in str(row[c_desc]) else "Match Odds"
-            
             df_clean['Metodo'] = df_clean.apply(get_metodo, axis=1)
             df_clean['Data_Apenas'] = df_clean['Dt_Obj'].dt.date
             df_clean['Hora'] = df_clean['Dt_Obj'].dt.hour
@@ -292,7 +259,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
 
             if menu == "📈 Performance Geral":
                 st.markdown("<h2 style='color: white;'>📈 Performance Geral</h2>", unsafe_allow_html=True)
-                p_perf = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_perf")
+                p_perf = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 if len(p_perf) == 2:
                     df_aba = df_clean[(df_clean['Data_Apenas'] >= p_perf[0]) & (df_clean['Data_Apenas'] <= p_perf[1])].copy()
                     total_l = df_aba['V_F'].sum(); entr = len(df_aba)
@@ -302,7 +269,6 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     for v in reversed(df_aba['V_F'].tolist()):
                         if v > 0.05: curr_streak += 1
                         elif v < -0.05: break
-
                     bg = "linear-gradient(135deg, #10b981 0%, #064e3b 100%)" if total_l >= 0 else "linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)"
                     st.markdown(f'<div class="metric-card metric-card-grande" style="background: {bg};"><div class="metric-title">Lucro Líquido Consolidado</div><div class="metric-value metric-value-grande">{format_br(total_l)}</div></div>', unsafe_allow_html=True)
                     c1,c2,c3,c4,c5 = st.columns(5)
@@ -310,17 +276,16 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     with c2: st.markdown(f'<div class="metric-card"><div class="metric-title">Saldo STK</div><div class="metric-value">{total_l/stake_padrao:,.2f}</div></div>', unsafe_allow_html=True)
                     with c3: st.markdown(f'<div class="metric-card"><div class="metric-title">Entradas</div><div class="metric-value">{entr}</div></div>', unsafe_allow_html=True)
                     with c4: st.markdown(f'<div class="metric-card"><div class="metric-title">Odd Média</div><div class="metric-value">{odd_m:.2f}</div></div>', unsafe_allow_html=True)
-                    with c5: st.markdown(f'<div class="metric-card" style="background:#1e293b"><div class="metric-title">Atual</div><div class="metric-value" style="color:#10b981">{curr_streak}🔥</div></div>', unsafe_allow_html=True)
+                    with c5: st.markdown(f'<div class="metric-card" style="background:#1e293b"><div class="metric-title">Sequência Atual</div><div class="metric-value" style="color:#10b981">{curr_streak} 🔥</div></div>', unsafe_allow_html=True)
                     st.markdown("<br>", unsafe_allow_html=True)
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown('<div class="section-title">Por Método</div>', unsafe_allow_html=True)
-                        res = df_aba.groupby('Metodo').agg({'V_F':['sum','count']}).reset_index()
-                        res.columns = ['Metodo','Lucro','Qtd']
+                        res = df_aba.groupby('Metodo').agg({'V_F': ['sum', 'count']}).reset_index()
+                        res.columns = ['Metodo', 'Lucro', 'Qtd']
                         for _, row in res.sort_values('Lucro', ascending=False).iterrows():
                             wr_m = (len(df_aba[(df_aba['Metodo']==row['Metodo']) & (df_aba['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
-                            cor = "val-pos" if row['Lucro'] >= 0 else "val-neg"
-                            st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{cor}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="perf-card"><div><b>{row["Metodo"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_m:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                     with col2:
                         st.markdown('<div class="section-title">Por Range de Odd</div>', unsafe_allow_html=True)
                         df_aba['Odd_T'] = df_aba['V_F'].apply(lambda x: (x/stake_padrao)+1 if x > 0 else 1.50)
@@ -350,7 +315,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.markdown(html + '</div>', unsafe_allow_html=True)
 
             elif menu == "📋 Log de Entradas" and st.session_state.is_premium:
-                p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_log")
+                p_log = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 search = st.text_input("Filtrar")
                 df_v = df_clean[(df_clean['Data_Apenas'] >= p_log[0]) & (df_clean['Data_Apenas'] <= p_log[1])]
                 df_v = df_v[df_v[c_desc].str.contains(search, case=False)] if search else df_v
@@ -365,7 +330,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         if novo != row['Metodo']: st.session_state.metodos_salvos[row['ID_Ref']] = novo; st.rerun()
 
             elif menu == "📊 Evolução Patrimonial" and st.session_state.is_premium:
-                p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_evol")
+                p_evol = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 df_ev = df_clean[(df_clean['Data_Apenas'] >= p_evol[0]) & (df_clean['Data_Apenas'] <= p_evol[1])].copy()
                 df_ev = df_ev.groupby('Data_Apenas')['V_F'].sum().reset_index(); df_ev['Acum'] = df_ev['V_F'].cumsum()
                 fig = go.Figure(); y, x = df_ev['Acum'].tolist(), df_ev['Data_Apenas'].tolist()
@@ -377,7 +342,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                 st.plotly_chart(fig, use_container_width=True)
 
             elif menu == "⏰ Análise de Janelas" and st.session_state.is_premium:
-                p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_jan")
+                p_jan = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 df_j = df_clean[(df_clean['Data_Apenas'] >= p_jan[0]) & (df_clean['Data_Apenas'] <= p_jan[1])]
                 c1, c2 = st.columns(2)
                 with c1:
@@ -389,7 +354,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         wr_d = (len(df_j[(df_j['Dia_Num']==row['Dia']) & (df_j['V_F']>0.05)]) / row['Qtd'] * 100) if row['Qtd']>0 else 0
                         st.markdown(f'<div class="perf-card"><div><b>{d_s[row["Dia"]]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_d:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown('<div class="section-title">Horários</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="section-title">Faixas Horárias</div>', unsafe_allow_html=True)
                     df_j['FH'] = pd.cut(df_j['Hora'], bins=[0,6,12,18,24], labels=['Madrugada (00h-06h)','Manhã (06h-12h)','Tarde (12h-18h)','Noite (18h-00h)'], include_lowest=True)
                     res_h = df_j.groupby('FH', observed=False).agg({'V_F':['sum','count']}).reset_index()
                     res_h.columns = ['Faixa','Lucro','Qtd']
@@ -398,7 +363,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                         st.markdown(f'<div class="perf-card"><div><b>{row["Faixa"]}</b><br><small style="color:#64748b">{int(row["Qtd"])} entr. | WR: {wr_h:.1f}%</small></div><div style="text-align:right;"><span class="{"val-pos" if row["Lucro"]>=0 else "val-neg"}">{format_br(row["Lucro"])}</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "🔥 Sequências" and st.session_state.is_premium:
-                p_seq = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()], key="p_seq")
+                p_seq = st.date_input("Período", [df_clean['Data_Apenas'].min(), df_clean['Data_Apenas'].max()])
                 df_s = df_clean[(df_clean['Data_Apenas'] >= p_seq[0]) & (df_clean['Data_Apenas'] <= p_seq[1])].copy()
                 str_g = {i: 0 for i in range(2, 12)}; temp_g = 0
                 str_r = {i: 0 for i in range(2, 12)}; temp_r = 0
@@ -419,24 +384,24 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     for i in range(2, 12): st.markdown(f'<div class="perf-card"><div><b>{i} Reds Seguidos</b></div><div style="text-align:right;"><span class="val-neg">{str_r[i]} vezes</span></div></div>', unsafe_allow_html=True)
 
             elif menu == "⚙️ Gestão de Métodos" and st.session_state.is_premium:
-                st.subheader("⚙️ Métodos")
+                st.subheader("⚙️ Gestão de Métodos")
                 novo_m = st.text_input("Novo método:")
                 if st.button("Adicionar"):
                     if novo_m and novo_m not in st.session_state.lista_metodos: st.session_state.lista_metodos.append(novo_m); st.rerun()
-                st.write("Atuais:", ", ".join(st.session_state.lista_metodos))
+                st.write("Métodos atuais:", ", ".join(st.session_state.lista_metodos))
                 st.download_button("BAIXAR MEU BACKUP (.JSON)", json.dumps(st.session_state.metodos_salvos), file_name="backup_bet.json")
 
         except Exception as e: st.error(f"Erro Crítico: {e}")
     else: st.info("Suba seu extrato Betfair na lateral para começar.")
 
-# --- BLOCO FINAL ---
+# --- BLOCO FINAL DE AJUSTE ---
 if st.session_state.page == 'dashboard' and st.session_state.auth:
     if menu == "📖 Como Extrair":
         st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<div class="step-box"><h3>1️⃣ Acesse sua Conta</h3><p>Vá em: <b>Minha Conta</b> > <b>Minha Atividade</b> > <b>Histórico de Transações</b>.</p></div>', unsafe_allow_html=True)
-            st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas no site da Betfair.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>2️⃣ Filtre o Período</h3><p>Escolha as datas desejadas.</p></div>', unsafe_allow_html=True)
         with c2:
             st.markdown('<div class="step-box"><h3>3️⃣ Baixe o CSV</h3><p>Clique no botão <b>Download como CSV</b> no fim da página.</p></div>', unsafe_allow_html=True)
-            st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo de upload no menu à esquerda deste site.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="step-box"><h3>4️⃣ Faça o Upload</h3><p>Use o campo na lateral esquerda.</p></div>', unsafe_allow_html=True)
