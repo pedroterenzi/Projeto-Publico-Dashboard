@@ -109,36 +109,39 @@ if 'pagina_atual' not in st.session_state: st.session_state.pagina_atual = 1
 # =========================================================
 # 1. PÁGINA DE VENDAS (A NOVA "PÁGINA INICIAL")
 # =========================================================
+# =========================================================
+# 1. PÁGINA DE VENDAS (A NOVA "PÁGINA INICIAL") - COPY AGRESSIVA
+# =========================================================
 if st.session_state.page == 'landing':
-    st.markdown("<h1 class='hero-title'>💎 BET ANALYTICS PRO</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='hero-subtitle'>O fim da cegueira nos seus investimentos esportivos.</p>", unsafe_allow_html=True)
+    st.markdown("<h1 class='hero-title'>💎 VOCÊ ESTÁ JOGANDO DINHEIRO FORA?</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='hero-subtitle'>Pare de agir como apostador e comece a lucrar como um fundo de investimento.</p>", unsafe_allow_html=True)
     
     c_venda, c_img = st.columns([1, 1.2])
     
     with c_venda:
-        st.markdown("### 😫 Sua banca está estagnada?")
+        st.markdown("### ❌ O Ciclo da Falência que você repete todo mês:")
         st.markdown("""
         <div class='pain-box'>
-            <b>• Você não sabe de onde vem seu lucro:</b> Sabe que ganhou, mas não sabe qual mercado é o culpado.<br>
-            <b>• Planilhas são seu inimigo:</b> Perde o dia preenchendo dados e desiste na segunda semana.<br>
-            <b>• Variância te assusta:</b> Não entende suas sequências de Reds e acaba mudando de método na hora errada.
+            <b>• O Lucro Invisível:</b> Você termina o dia no Green, mas não tem ideia de qual método funcionou. Você está ganhando por competência ou por sorte? A sorte acaba, a análise não.<br><br>
+            <b>• Escravo das Planilhas:</b> Você gasta 1 hora preenchendo Excel para depois abandonar tudo na primeira sequência de Red. Seu tempo vale ouro, pare de desperdiçá-lo com trabalho braçal.<br><br>
+            <b>• O Erro do Emocional:</b> Você abandona um método lucrativo só porque pegou 3 Reds seguidos. Sem dados, você toma decisões baseadas no medo, e o medo quebra bancas.
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("### 💡 Seja o médico da sua banca")
+        st.markdown("### 🎯 Assuma o controle da sua Operação")
         st.markdown("""
         <div class='solution-box'>
-            <b>• Importação em 1 Segundo:</b> Suba o extrato da Betfair e veja o diagnóstico completo.<br>
-            <b>• Filtros Profissionais:</b> ROI por Horário, Dia da Semana e Faixa de Odd.<br>
-            <b>• Gestão que evolui:</b> Classifique suas próprias estratégias e salve seus backups.
+            <b>• Diagnóstico em 1 Clique:</b> Arraste seu extrato Betfair e descubra IMEDIATAMENTE onde está o ralo que suga seu dinheiro.<br><br>
+            <b>• Filtros de Sniper:</b> Saiba exatamente qual dia da semana e qual horário você é mais lucrativo. Otimize seu tempo operando apenas quando a matemática está ao seu lado.<br><br>
+            <b>• Raio-X da Variância:</b> Visualize suas sequências históricas. Entenda seus Reds para não entrar em pânico e domine seus Greens para escalar sua stake.
         </div>
         """, unsafe_allow_html=True)
         
         st.write("---")
-        if st.button("🔥 ACESSAR DASHBOARD PREMIUM", use_container_width=True):
+        if st.button("🔥 QUERO O DIAGNÓSTICO PREMIUM AGORA", use_container_width=True):
             st.session_state.page = 'login'
             st.rerun()
-        if st.button("🆓 USAR VERSÃO FREE (BÁSICA)", use_container_width=True):
+        if st.button("🆓 TESTAR VERSÃO LIMITADA (GRÁTIS)", use_container_width=True):
             st.session_state.auth = True
             st.session_state.is_premium = False
             st.session_state.page = 'dashboard'
@@ -146,24 +149,27 @@ if st.session_state.page == 'landing':
 
     with c_img:
         try: st.image("capa_venda.png", use_container_width=True)
-        except: st.info("🖼️ [Imagem da Performance Geral]")
+        except: st.info("🖼️ [VISUAL DO DASHBOARD PROFISSIONAL]")
+        st.markdown("<p style='text-align:center; color:#10b981; font-weight:800;'>A ferramenta definitiva usada por quem vive do mercado.</p>", unsafe_allow_html=True)
 
     st.write("---")
-    st.markdown("<h2 style='text-align:center; color:white;'>Visões poderosas para lucrar mais</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center; color:white;'>Pare de tentar adivinhar. Comece a medir.</h2>", unsafe_allow_html=True)
     v1, v2, v3 = st.columns(3)
     with v1:
-        st.markdown("#### 📅 Diário de Operações")
+        st.markdown("#### 📅 A Prova Real")
+        st.write("Veja sua consistência estampada no calendário. O verde traz paz, os dados trazem lucro.")
         try: st.image("diario_demo.png")
-        except: st.info("Demonstração do Calendário")
+        except: st.info("Calendário de Consistência")
     with v2:
-        st.markdown("#### ⏰ Janelas de Horário")
+        st.markdown("#### ⏰ Janelas de Oportunidade")
+        st.write("Pare de operar o dia todo. Descubra os horários onde sua taxa de acerto explode.")
         try: st.image("janelas_demo.png")
-        except: st.info("Demonstração de Horários")
+        except: st.info("Análise Horária")
     with v3:
-        st.markdown("#### 🔥 Análise de Sequências")
+        st.markdown("#### 🔥 Domine o Red")
+        st.write("Saiba exatamente quanto seu método suporta oscilar. O conhecimento é o fim do medo.")
         try: st.image("sequencias_demo.png")
-        except: st.info("Demonstração de Variância")
-
+        except: st.info("Análise de Sequências")
 # =========================================================
 # 2. PÁGINA DE LOGIN REFORMULADA (A BARREIRA)
 # =========================================================
