@@ -20,6 +20,19 @@ LINK_WHATSAPP = f"https://wa.me/{CELULAR_VENDAS}?text={MSG_WHATSAPP}"
 API_KEY = "6b546b2e8dmsh056a5639f8a63e0p10cf81jsn73180c89830b"
 API_HOST = "sportapi7.p.rapidapi.com"
 
+# --- FUNÇÃO PARA CONVERTER ODD FRACIONÁRIA EM DECIMAL ---
+def converter_odd(valor):
+    if not valor or valor == "---":
+        return "---"
+    try:
+        if "/" in str(valor):
+            num, den = str(valor).split("/")
+            decimal = (int(num) / int(den)) + 1
+            return f"{decimal:.2f}".replace(".", ",")
+        return str(valor).replace(".", ",")
+    except:
+        return "---"
+
 # --- FUNÇÃO PARA BUSCAR ODDS DE UM EVENTO ESPECÍFICO ---
 def buscar_odds_evento(event_id):
     try:
@@ -28,7 +41,6 @@ def buscar_odds_evento(event_id):
         response = requests.get(url, headers=headers)
         data = response.json()
         
-        # Procura pelo mercado '1X2' ou 'Full Time'
         for choice in data.get('markets', []):
             if choice.get('marketName') == 'Full time' or choice.get('marketId') == 1:
                 odds = choice.get('choices', [])
@@ -36,9 +48,11 @@ def buscar_odds_evento(event_id):
                 ox = "---"
                 o2 = "---"
                 for o in odds:
-                    if o.get('name') == '1': o1 = o.get('fractionalValue', o.get('value'))
-                    if o.get('name') == 'X': ox = o.get('fractionalValue', o.get('value'))
-                    if o.get('name') == '2': o2 = o.get('fractionalValue', o.get('value'))
+                    val_bruto = o.get('fractionalValue', o.get('value'))
+                    val_decimal = converter_odd(val_bruto)
+                    if o.get('name') == '1': o1 = val_decimal
+                    if o.get('name') == 'X': ox = val_decimal
+                    if o.get('name') == '2': o2 = val_decimal
                 return o1, ox, o2
     except:
         pass
@@ -67,7 +81,6 @@ def buscar_jogos_realtime():
                     liga = event.get('tournament', {}).get('name', 'Geral').upper()
                     event_id = event.get('id')
                     
-                    # Busca as Odds reais via API
                     o1, ox, o2 = buscar_odds_evento(event_id)
                     
                     jogo_info = {
@@ -86,7 +99,7 @@ def buscar_jogos_realtime():
             for l in agrupados[p]:
                 agrupados[p][l] = sorted(agrupados[p][l], key=lambda x: x['ts'])
     except:
-        agrupados = {"DESTAQUES": {"SISTEMA": [{"hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "o1": "2.10", "ox": "3.50", "o2": "3.40"}]}}
+        agrupados = {"DESTAQUES": {"SISTEMA": [{"hora": "16:00", "home": "Real Madrid", "away": "Barcelona", "o1": "2,10", "ox": "3,50", "o2": "3,40"}]}}
     return agrupados
 
 prognosticos_dia = [
@@ -98,7 +111,7 @@ prognosticos_dia = [
     }
 ]
 
-# --- ESTILIZAÇÃO CSS PREMIUM REFINADA (MANTIDA INTEGRALMENTE CONFORME SOLICITADO) ---
+# --- ESTILIZAÇÃO CSS PREMIUM REFINADA ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
@@ -137,7 +150,7 @@ st.markdown("""
     .metric-value { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
     .metric-value-grande { font-size: 2.8rem; }
 
-    /* CALENDÁRIO (REESTABELECIDO) */
+    /* CALENDÁRIO */
     .monthly-profit-card { padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: 800; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
     .day-name { text-align: center; color: #475569; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; padding-bottom: 5px; }
@@ -163,6 +176,9 @@ st.markdown("""
     .team-name { color: white; font-weight: 600; font-size: 1.05rem; display: block; }
     .match-odds { display: flex; gap: 10px; }
     .odd-box { background: #0f172a; padding: 10px 15px; border-radius: 8px; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center; min-width: 60px; }
+
+    .prog-card { background: #0f172a; border-radius: 15px; padding: 25px; margin-bottom: 20px; border-left: 5px solid #10b981; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .prog-stat { background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; margin: 8px 0; color: #10b981; font-weight: 600; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -215,7 +231,7 @@ elif st.session_state.page == 'login':
         with st.container():
             st.markdown("<div style='background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
             u_in = st.text_input("E-mail"); p_in = st.text_input("Senha", type="password")
-            if st.button("CONFIRMAR ACESSO", use_container_width=True):
+            if st.button("CONFIRMAR ACESSO PREMIUM", use_container_width=True):
                 try:
                     users = st.secrets["users"]
                     if u_in in users and users[u_in] == p_in:
@@ -238,9 +254,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
         uploaded_file = st.file_uploader("1. Carregar Extrato Betfair (.csv)", type=["csv"])
         if st.session_state.is_premium:
             uploaded_backup = st.file_uploader("2. Opcional: Carregar Backup (.json)", type=["json"])
-            if uploaded_backup:
-                st.session_state.metodos_salvos = json.load(uploaded_backup)
-                st.success("Backup OK!")
+            if uploaded_backup: st.session_state.metodos_salvos = json.load(uploaded_backup); st.success("Backup OK!")
         stake_padrao = st.number_input("Sua Stake Padrão (R$)", value=600.0)
         st.markdown("---")
         opcoes_menu = ["📈 Performance Geral", "🏟️ Jogos de Hoje", "🧠 Prognósticos"]
@@ -248,6 +262,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
             opcoes_menu += ["📅 Diário de Operações", "📋 Log de Entradas", "📊 Evolução Patrimonial", "⏰ Análise de Janelas", "🔥 Sequências", "⚙️ Gestão de Métodos"]
         opcoes_menu += ["📖 Como Extrair"]
         menu = st.radio("Menu", opcoes_menu, label_visibility="collapsed")
+        if not st.session_state.is_premium: st.markdown("---"); st.info("🔓 Assine o Pro para liberar todas as abas.")
 
     if menu == "🏟️ Jogos de Hoje":
         st.markdown("<h2 style='color: white;'>🏟️ Agenda de Hoje (Brasília)</h2>", unsafe_allow_html=True)
@@ -261,8 +276,8 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
                     <div class='match-card'>
                         <div class='match-time'>{j['hora']}</div>
                         <div class='match-teams'>
-                            <span class='team-name'>{j['home']}</span>
-                            <span class='team-name'>{j['away']}</span>
+                            <div class='team-row'><span class='team-name'>{j['home']}</span></div>
+                            <div class='team-row'><span class='team-name'>{j['away']}</span></div>
                         </div>
                         <div class='match-odds'>
                             <div class='odd-box'><small style='color:#94a3b8; display:block'>1</small>{j['o1']}</div>
@@ -280,6 +295,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
     if uploaded_file is not None:
         try:
             df_raw = pd.read_csv(uploaded_file)
+            # Lógica Dashboard (Mantida 100%)
             map_cols = {'Data':['Data','Date','data'],'Desc':['Descrição','Description','Evento','Market'],'Val':['Valor (R$)','Amount','Profit/Loss','Valor'],'Ent':['Entrada de Dinheiro (R$)', 'In'],'Sai':['Saída de Dinheiro (R$)', 'Out']}
             def get_c(key):
                 for c in df_raw.columns:
@@ -417,7 +433,7 @@ elif st.session_state.page == 'dashboard' and st.session_state.auth:
         except Exception as e: st.error(f"Erro: {e}")
     else: st.info("Suba seu extrato Betfair na lateral para começar.")
 
-# BLOCO DE EXTRAÇÃO FINAL
+# BLOCO DE EXTRAÇÃO FINAL (MANTIDO)
 if st.session_state.page == 'dashboard' and st.session_state.auth:
     if 'menu' in locals() and menu == "📖 Como Extrair":
         st.markdown("<h1 style='color: white; text-align: center;'>📖 Guia de Extração</h1><br>", unsafe_allow_html=True)
